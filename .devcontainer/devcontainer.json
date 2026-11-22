@@ -1,0 +1,14 @@
+{
+    "name": "Ambiente de demonstração",
+    "build": { "dockerfile": "Dockerfile" },
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": { "version": "22" }
+    },
+    "hostRequirements": { "cpus": 2 },
+    "forwardPorts": [8000],
+    "portsAttributes": {
+        "8000": { "label": "Sistema", "onAutoForward": "openBrowser" }
+    },
+    "postCreateCommand": "bash .devcontainer/setup.sh",
+    "postStartCommand": "bash .devcontainer/start.sh"
+}

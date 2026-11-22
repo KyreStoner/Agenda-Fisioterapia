@@ -16,6 +16,21 @@ Sistema online e responsivo para clínicas de fisioterapia. Funciona no navegado
 
 Em avaliação: esta branch usa o [Easy!Appointments](https://github.com/alextselegidis/easyappointments) 1.6.1 como base do agendamento. Os módulos de prontuário (evolução e protocolos) ainda serão desenvolvidos. As decisões e requisitos do projeto estão em [AGENTS.md](AGENTS.md).
 
+## Ver o sistema funcionando (GitHub Codespaces)
+
+Não precisa instalar nada no computador.
+
+1. No GitHub, abra a branch do projeto e clique em **Code → Codespaces → Create codespace**.
+2. Aguarde a preparação. Na primeira vez leva alguns minutos, porque instala tudo e carrega dados **fictícios** de demonstração.
+3. O sistema abre numa nova aba. Se não abrir, vá na aba **PORTAS** (Ports) e clique no endereço da porta **8000**.
+
+- Agendamento do paciente: o endereço principal.
+- Painel da clínica: acrescente `/index.php/login` ao endereço. Usuário `administrator`, senha `administrator`.
+
+O link é privado (só abre com a sua conta do GitHub). O Codespace desliga sozinho após um tempo sem uso. Para voltar, abra **Code → Codespaces** e clique nele novamente.
+
+Os scripts ficam em `.devcontainer/`. Para recarregar só os dados de demonstração em um banco limpo, rode `php index.php console install` e depois `bash .devcontainer/demo-data.sh`.
+
 ## Como rodar localmente
 
 Requisitos: PHP 8.2+, Composer, Node 22+ e MySQL ou MariaDB.
