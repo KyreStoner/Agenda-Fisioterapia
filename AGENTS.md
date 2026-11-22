@@ -32,10 +32,26 @@ Instruções permanentes para qualquer assistente (Claude, Codex etc.) que traba
 - Exigências: login com níveis de acesso, registro de quem acessou ou alterou cada prontuário, conexão HTTPS e backups.
 - Nunca coloque dados reais de pacientes, credenciais ou tokens no repositório, nos exemplos ou nos testes. Use dados fictícios.
 
+## Base técnica: Easy!Appointments (aguardando aprovação do usuário)
+
+- Proposta em avaliação na branch `base-easyappointments`: usar o [Easy!Appointments](https://github.com/alextselegidis/easyappointments) 1.6.1 como base do agendamento.
+- Stack: PHP 8.2+, CodeIgniter 3 (embutido em `system/`, que é código do framework e **não deve ser editado**), MySQL/MariaDB, Bootstrap e jQuery, com build de assets por gulp.
+- Estrutura principal:
+  - `application/controllers`: páginas, com a API REST em `api/v1`.
+  - `application/models`: uma model por entidade.
+  - `application/libraries`: regras de negócio, como disponibilidade e notificações.
+  - `application/migrations`: alterações do banco. Sempre crie a próxima migração numerada e nunca edite uma existente.
+  - `application/language/portuguese-br`: textos em português.
+  - `application/views` e `assets/`: telas, JS e SCSS.
+- Configuração local em `config.php` (cópia de `config-sample.php`, ignorada pelo git).
+- Comandos de console: `php index.php console install|migrate|seed|backup`.
+- Os módulos novos (prontuário, evolução, protocolos) devem seguir esse mesmo padrão: migração + model + controller + view + JS + textos em `portuguese-br`.
+- **Licença GPL-3.0 herdada**: o projeto inteiro passa a ser GPL-3.0. Mantenha os avisos de copyright e licença do código original e um aviso legal discreto no rodapé do painel. A marca e o visual podem ser personalizados.
+
 ## Pendências (decidir com o usuário)
 
-- Projeto de referência no GitHub que o usuário quer usar como base: aguardando o link.
-- Tecnologia (stack) e hospedagem.
+- Aprovar ou não a base Easy!Appointments (branch `base-easyappointments`).
+- Hospedagem.
 - Um profissional ou vários? Uma unidade ou várias?
 - Lembretes de consulta (WhatsApp, e-mail)?
 - O paciente terá login próprio ou só agenda com dados básicos?
