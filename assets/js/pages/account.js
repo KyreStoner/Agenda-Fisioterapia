@@ -171,7 +171,7 @@ App.Pages.Account = (function () {
             $password.val('');
             $retypePassword.val('');
 
-            $footerUserDisplayName.text('Hello, ' + $firstName.val() + ' ' + $lastName.val() + '!');
+            $footerUserDisplayName.text($firstName.val() + ' ' + $lastName.val());
         });
     }
 

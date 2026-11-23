@@ -1,38 +1,36 @@
 <?php
 /**
+ * Rodapé do painel: sempre visível. À esquerda o nome e a versão do sistema (com o crédito discreto da licença),
+ * à direita quem está usando e o perfil.
+ *
  * Local variables.
  *
  * @var string $user_display_name
  */
+$role_slug = session('role_slug');
 ?>
-<div id="footer" class="d-lg-flex justify-content-lg-start align-items-lg-center p-2 text-center text-lg-left mt-auto bg-body border-top" style="font-size: 11px;">
-    <div class="mb-3 me-lg-5 mb-lg-0 text-muted">
-        <?= e(app_name()) ?> &middot;
-        <?= lang('based_on') ?>
-        <a href="https://easyappointments.org" target="_blank" class="text-muted">Easy!Appointments</a>
-        v<?= config('version') ?> &copy; Alex Tselegidis &middot;
-        <?= lang('licensed_under') ?>
-        <a href="https://www.gnu.org/licenses/gpl-3.0.en.html" target="_blank" class="text-muted">GPL-3.0</a>
-    </div>
-
-    <div class="mb-3 me-lg-5 mb-lg-0">
-        <span id="select-language" class="badge bg-dark">
-            <i class="fas fa-language me-2"></i>
-        	<?= ucfirst(config('language')) ?>
+<div id="footer" class="d-flex align-items-center gap-2 px-2 py-1 mt-auto bg-body border-top text-muted"
+     style="font-size: 11px; position: sticky; bottom: 0; z-index: 1020;">
+    <div class="text-truncate">
+        <span class="fw-semibold"><?= e(app_name()) ?></span> v<?= e(config('app_version')) ?>
+        <span class="d-none d-md-inline">
+            &middot; <?= lang('based_on') ?>
+            <a href="https://easyappointments.org" target="_blank" class="text-muted">Easy!Appointments</a>
+            &middot; <a href="https://www.gnu.org/licenses/gpl-3.0.en.html" target="_blank" class="text-muted">GPL-3.0</a>
         </span>
     </div>
 
-    <div class="mb-3 me-lg-5 mb-lg-0">
-        <a href="<?= site_url('appointments') ?>">
-            <?= lang('go_to_booking_page') ?>
-        </a>
-    </div>
+    <?php if (config('language_selection')): ?>
+        <span id="select-language" class="badge bg-dark" role="button">
+            <i class="fas fa-language me-1"></i><?= ucfirst(config('language')) ?>
+        </span>
+    <?php endif; ?>
 
-    <div class="ms-lg-auto">
-        <strong id="footer-user-display-name">
-            <?= lang('hello') . ', ' . e($user_display_name) ?>!
-        </strong>
+    <div class="ms-auto text-truncate text-end">
+        <i class="fas fa-user me-1"></i>
+        <span id="footer-user-display-name" class="fw-semibold"><?= e($user_display_name) ?></span>
+        <?php if ($role_slug): ?>
+            / <span id="footer-user-role"><?= lang('role_' . $role_slug) ?: e($role_slug) ?></span>
+        <?php endif; ?>
     </div>
 </div>
-
-

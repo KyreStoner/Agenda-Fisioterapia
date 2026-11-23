@@ -22,10 +22,12 @@
         </span>
 
         <span class="footer-options d-block w-100 w-md-50 text-center text-md-end">
-            <span id="select-language" class="badge bg-secondary d-inline-block my-1 my-md-0 p-1" style="min-width: 100px;">
-                <i class="fas fa-language me-2"></i>
-                <?= ucfirst(config('language')) ?>
-            </span>
+            <?php if (config('language_selection')): ?>
+                <span id="select-language" class="badge bg-secondary d-inline-block my-1 my-md-0 p-1" style="min-width: 100px;">
+                    <i class="fas fa-language me-2"></i>
+                    <?= ucfirst(config('language')) ?>
+                </span>
+            <?php endif; ?>
     
             <?php if ($display_login_button): ?>
                 <a class="backend-link badge bg-primary text-decoration-none px-2 d-inline-block my-1 my-md-0 p-1"

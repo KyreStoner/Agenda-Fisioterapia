@@ -84,5 +84,6 @@ appointment "${days[4]}" 16:00 @sessao    paciente5@exemplo.com.br
 } | mysql --default-character-set=utf8mb4 -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}"
 
 DB_NAME="${DB_NAME}" DB_USER="${DB_USER}" DB_PASS="${DB_PASS}" bash "$(dirname "$0")/demo-logins.sh"
+DB_NAME="${DB_NAME}" DB_USER="${DB_USER}" DB_PASS="${DB_PASS}" php "$(dirname "$0")/demo-records.php"
 
 echo "Dados fictícios de demonstração carregados."

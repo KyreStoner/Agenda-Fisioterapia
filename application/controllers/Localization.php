@@ -36,6 +36,10 @@ class Localization extends EA_Controller
 
             check('language', 'string');
 
+            if (!config('language_selection')) {
+                throw new RuntimeException('A troca de idioma está desligada (application/config/app.php).');
+            }
+
             $language = request('language');
 
             // Validate language is not empty

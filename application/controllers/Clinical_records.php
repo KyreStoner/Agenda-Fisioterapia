@@ -68,6 +68,58 @@ class Clinical_records extends EA_Controller
     }
 
     /**
+     * Relatório A4 para imprimir ou salvar em PDF: o prontuário inteiro ou um registro (?record=ID).
+     */
+    public function report(int $customer_id = 0): void
+    {
+        method('get');
+
+        $customer = $this->authorize($customer_id, 'view');
+
+        if (!$customer) {
+            return;
+        }
+
+        $records = $this->clinical_records_model->get_by_customer($customer_id);
+        $record_id = (int) request('record');
+
+        if ($record_id) {
+            $records = array_values(array_filter($records, fn($record) => $record['id'] === $record_id));
+
+            if (!$records) {
+                abort(404, 'Not Found');
+
+                return;
+            }
+        }
+
+        $this->clinical_records_model->log_access($this->current_user(), $customer_id, $record_id ?: null, 'print');
+
+        $all_records = $this->clinical_records_model->get_by_customer($customer_id);
+
+        html_vars([
+            'page_title' => lang('cr_report_title'),
+            'customer' => $customer,
+            'records' => array_reverse($records), // Relatório em ordem cronológica.
+            'single' => (bool) $record_id,
+            'forms' => [
+                'assessment' => $this->clinical_records_model->form('assessment'),
+                'evolution' => $this->clinical_records_model->form('evolution'),
+            ],
+            'catalog' => $this->clinical_records_model->catalog(),
+            'goals_progress' => $this->clinical_records_model->goals_progress($all_records),
+            'goal_labels' => $this->goal_labels($all_records),
+            'issued_by' => $this->current_user()['name'],
+            'company_name' => setting('company_name'),
+            'company_email' => setting('company_email'),
+            'company_link' => setting('company_link'),
+            'company_logo' => setting('company_logo'),
+        ]);
+
+        $this->load->view('pages/clinical_record_report');
+    }
+
+    /**
      * Formulário de nova avaliação ou evolução.
      */
     public function create(int $customer_id = 0, string $type = 'evolution'): void

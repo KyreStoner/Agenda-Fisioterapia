@@ -120,7 +120,11 @@ class EA_Controller extends CI_Controller
         // Priority: session > query param > default (english)
         $language = null;
 
-        if ($session_language && in_array($session_language, $available_languages)) {
+        if (!config('language_selection')) {
+            // Seleção de idioma desligada (application/config/app.php): vale sempre o idioma do config.php, sem olhar
+            // o idioma do navegador nem o parâmetro ?language= (que o application/config/config.php considera).
+            $language = Config::LANGUAGE;
+        } elseif ($session_language && in_array($session_language, $available_languages)) {
             $language = $session_language;
         } elseif ($query_language && in_array($query_language, $available_languages)) {
             $language = $query_language;
