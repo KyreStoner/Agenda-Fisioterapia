@@ -43,6 +43,49 @@ class Availability
         $this->CI->load->model('working_plan_exceptions_model');
 
         $this->CI->load->library('ics_file');
+        $this->CI->load->library('shifts');
+    }
+
+    /**
+     * Plano de trabalho de uma data ({start, end, breaks}) ou null se o profissional não atende nela.
+     *
+     * Prioridade: exceção de horário da data; depois os turnos (se o profissional tiver turnos cadastrados); por
+     * último o horário semanal original (working_plan).
+     */
+    protected function get_date_working_plan(string $date, array $provider): ?array
+    {
+        $working_plan_exceptions = $this->CI->working_plan_exceptions_model->get_by_provider($provider['id']);
+
+        if (array_key_exists($date, $working_plan_exceptions)) {
+            return $working_plan_exceptions[$date] ?: null;
+        }
+
+        if ($this->CI->shifts->provider_uses_shifts((int) $provider['id'])) {
+            return $this->CI->shifts->date_plan((int) $provider['id'], $date);
+        }
+
+        $working_plan = json_decode($provider['settings']['working_plan'], true);
+
+        return $working_plan[strtolower(date('l', strtotime($date)))] ?? null;
+    }
+
+    /**
+     * Turnos que valem na data, quando a grade dos turnos deve ser usada; null quando não (o profissional não tem
+     * turnos ou a data tem uma exceção de horário).
+     */
+    protected function get_date_shifts(string $date, array $provider): ?array
+    {
+        $working_plan_exceptions = $this->CI->working_plan_exceptions_model->get_by_provider($provider['id']);
+
+        if (array_key_exists($date, $working_plan_exceptions)) {
+            return null;
+        }
+
+        if (!$this->CI->shifts->provider_uses_shifts((int) $provider['id'])) {
+            return null;
+        }
+
+        return $this->CI->provider_shifts_model->get_for_date((int) $provider['id'], $date);
     }
 
     /**
@@ -76,7 +119,12 @@ class Availability
         } else {
             $available_periods = $this->get_available_periods($date, $provider, $exclude_appointment_id);
 
-            $available_hours = $this->generate_available_hours($date, $service, $available_periods);
+            $date_shifts = $this->get_date_shifts($date, $provider);
+
+            $available_hours =
+                $date_shifts !== null
+                    ? $this->CI->shifts->generate_hours($date, $service, $date_shifts, $available_periods)
+                    : $this->generate_available_hours($date, $service, $available_periods);
         }
 
         $available_hours = $this->consider_book_advance_timeout($date, $available_hours, $provider);
@@ -111,18 +159,7 @@ class Availability
             'id_users_provider' => $provider['id'],
         ]);
 
-        $working_plan = json_decode($provider['settings']['working_plan'], true);
-
-        $working_plan_exceptions = $this->CI->working_plan_exceptions_model->get_by_provider($provider['id']);
-
-        $working_day = strtolower(date('l', strtotime($date)));
-
-        $date_working_plan = $working_plan[$working_day] ?? null;
-
-        // Search if the $date is a custom availability period added outside the normal working plan.
-        if (array_key_exists($date, $working_plan_exceptions)) {
-            $date_working_plan = $working_plan_exceptions[$date];
-        }
+        $date_working_plan = $this->get_date_working_plan($date, $provider);
 
         if (!$date_working_plan) {
             return [];
@@ -337,12 +374,6 @@ class Availability
      */
     public function get_available_periods(string $date, array $provider, ?int $exclude_appointment_id = null): array
     {
-        // Get the service, provider's working plan and provider appointments.
-        $working_plan = json_decode($provider['settings']['working_plan'], true);
-
-        // Get the provider's working plan exceptions from the new table.
-        $working_plan_exceptions = $this->CI->working_plan_exceptions_model->get_by_provider($provider['id']);
-
         // Validate and sanitize inputs before building query
         $provider_id = (int) $provider['id'];
 
@@ -374,14 +405,7 @@ class Availability
 
         // Find the empty spaces on the plan. The first split between the plan is due to a break (if any). After that
         // every reserved appointment is considered to be a taken space in the plan.
-        $working_day = strtolower(date('l', strtotime($date)));
-
-        $date_working_plan = $working_plan[$working_day] ?? null;
-
-        // Search if the $date is a custom availability period added outside the normal working plan.
-        if (array_key_exists($date, $working_plan_exceptions)) {
-            $date_working_plan = $working_plan_exceptions[$date];
-        }
+        $date_working_plan = $this->get_date_working_plan($date, $provider);
 
         if (!$date_working_plan) {
             return [];

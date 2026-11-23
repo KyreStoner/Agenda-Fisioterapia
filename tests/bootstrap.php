@@ -43,6 +43,12 @@ function setting(array|string|null $key = null, mixed $default = null): mixed
     return $GLOBALS['ea_test_settings'][$key] ?? $default;
 }
 
+// Tradução: nos testes devolve a própria chave, para conferir qual mensagem foi usada.
+function lang(string $key): string
+{
+    return $key;
+}
+
 function abort(int $code, string $message = ''): void
 {
     throw new RuntimeException($message ?: (string) $code);

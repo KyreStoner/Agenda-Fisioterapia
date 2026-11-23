@@ -44,6 +44,10 @@ UPDATE ea_users SET timezone = 'America/Sao_Paulo', language = 'portuguese-br';
 UPDATE ea_users SET first_name = 'Administrador', last_name = 'da Clínica' WHERE id = @admin;
 UPDATE ea_users SET first_name = 'Ana', last_name = 'Exemplo (Fisioterapeuta)', email = 'ana@clinica-exemplo.com.br' WHERE id = @fisio;
 UPDATE ea_user_settings SET working_plan = '${working_plan}' WHERE id_users = @fisio;
+DELETE FROM ea_provider_shifts WHERE id_users_provider = @fisio;
+INSERT INTO ea_provider_shifts (id_users_provider, weekday, frequency, start_time, end_time, break_start, break_end, duration, notes, create_datetime, update_datetime)
+VALUES (@fisio, 'weekdays', 'weekly', '08:00', '18:00', '12:00', '13:00', 60, 'Almoço das 12h às 13h', NOW(), NOW()),
+       (@fisio, 'saturday', 'weekly', '08:00', '12:00', NULL, NULL, 60, NULL, NOW(), NOW());
 
 UPDATE ea_services SET name = 'Sessão de Fisioterapia', duration = 50, price = 150.00, currency = 'R\$',
        slot_interval = 60, description = 'Atendimento individual de fisioterapia.' WHERE id = @sessao;
@@ -78,5 +82,7 @@ appointment "${days[2]}" 13:00 @sessao    paciente3@exemplo.com.br
 appointment "${days[3]}" 10:00 @avaliacao paciente4@exemplo.com.br
 appointment "${days[4]}" 16:00 @sessao    paciente5@exemplo.com.br
 } | mysql --default-character-set=utf8mb4 -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}"
+
+DB_NAME="${DB_NAME}" DB_USER="${DB_USER}" DB_PASS="${DB_PASS}" bash "$(dirname "$0")/demo-logins.sh"
 
 echo "Dados fictícios de demonstração carregados."

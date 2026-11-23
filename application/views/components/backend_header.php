@@ -76,6 +76,9 @@
                     <a class="dropdown-item" href="<?= site_url('providers') ?>">
                         <?= lang('providers') ?>
                     </a>
+                    <a class="dropdown-item" href="<?= site_url('provider_shifts') ?>">
+                        <?= lang('shifts') ?>
+                    </a>
                     <a class="dropdown-item" href="<?= site_url('secretaries') ?>">
                         <?= lang('secretaries') ?>
                     </a>

@@ -290,6 +290,30 @@
                         <?= lang('working_plan') ?>
                     </h4>
 
+                    <?php // Os horários agora são configurados na tela de Turnos (Provider_shifts). ?>
+                    <div class="alert alert-info">
+                        <p class="mb-2"><?= lang('shifts_moved_hint') ?></p>
+                        <a id="open-shifts" class="btn btn-primary" href="<?= site_url('provider_shifts') ?>"
+                           data-base="<?= site_url('provider_shifts') ?>">
+                            <i class="fas fa-clock me-2"></i>
+                            <?= lang('configure_shifts') ?>
+                        </a>
+                    </div>
+                    <script>
+                        // Abre os turnos do profissional selecionado na lista.
+                        document.addEventListener('click', (event) => {
+                            const link = event.target.closest('#open-shifts');
+                            const selected = document.querySelector('#providers .provider-row.selected');
+
+                            if (link && selected) {
+                                link.href = link.dataset.base + '?provider=' + selected.dataset.id;
+                            }
+                        });
+                    </script>
+
+                    <?php // Horário semanal antigo: escondido, mas mantido porque o providers.js ainda o lê e salva. ?>
+                    <div class="d-none">
+
                     <button id="reset-working-plan" class="btn btn-primary"
                             data-tippy-content="<?= lang('reset_working_plan') ?>">
                         <i class="fas fa-undo-alt me-2"></i>
@@ -340,9 +364,9 @@
                         </table>
                     </div>
 
-                    <br>
+                    </div>
 
-                    <h4 class="mb-3 fw-light">
+                    <h4 class="mb-3 fw-light mt-4">
                         <?= lang('working_plan_exceptions') ?>
                     </h4>
 

@@ -14,6 +14,11 @@ if [ -f config.php ] && mysql -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" -e "SEL
     php index.php console migrate
 fi
 
+# Recompila JS e CSS (cerca de 20 s), para mudanças em assets/ valerem também num Codespace já criado.
+if [ -d node_modules ]; then
+    npx gulp scripts styles > /tmp/gulp-assets.log 2>&1 || echo "Aviso: não foi possível recompilar JS/CSS (veja /tmp/gulp-assets.log)."
+fi
+
 pkill -f "php -S 0.0.0.0:8000" 2>/dev/null || true
 for _ in $(seq 1 20); do
     (exec 3<>/dev/tcp/127.0.0.1/8000) 2>/dev/null || break
