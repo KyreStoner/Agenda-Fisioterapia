@@ -37,21 +37,98 @@ class Clinical_records_model extends EA_Model
     }
 
     /**
+     * Catálogo de regiões do corpo, testes especiais e questionários (application/config/clinical_catalog.php).
+     */
+    public function catalog(): array
+    {
+        $this->config->load('clinical_catalog', true);
+
+        return $this->config->item('clinical_catalog', 'clinical_catalog');
+    }
+
+    /**
+     * Blocos de testes para as regiões marcadas: um por área e lado (ex.: "ombro_d" = Ombro direito). Regiões da
+     * mesma área e do mesmo lado (ombro e braço direitos) formam um bloco só.
+     *
+     * @return array [chave => ['area' => ..., 'side' => ..., 'label' => ...]] na ordem do catálogo.
+     */
+    public function region_blocks(array $regions, array $catalog): array
+    {
+        $blocks = [];
+
+        foreach ($catalog['regions'] ?? [] as $region_id => $region) {
+            if (!in_array($region_id, $regions, true) || empty($region['area'])) {
+                continue;
+            }
+
+            $key = $region['area'] . ($region['side'] ? '_' . $region['side'] : '');
+
+            if (isset($blocks[$key])) {
+                continue;
+            }
+
+            $side = match ($region['side']) {
+                'd' => ' ' . lang('cr_side_right'),
+                'e' => ' ' . lang('cr_side_left'),
+                default => '',
+            };
+
+            $blocks[$key] = [
+                'area' => $region['area'],
+                'side' => $region['side'],
+                'label' => $catalog['areas'][$region['area']]['label'] . $side,
+            ];
+        }
+
+        return $blocks;
+    }
+
+    /**
      * Valida e limpa os campos enviados pelo formulário. Devolve [conteúdo, escala de dor].
+     *
+     * @param array $form Seções e campos da ficha.
+     * @param array $input Valores enviados (fields[...]).
+     * @param array $context 'catalog' (catálogo clínico) e 'goal_ids' (metas válidas para marcar na evolução).
      *
      * @throws InvalidArgumentException Com a mensagem para o usuário.
      */
-    public function clean_content(array $form, array $input): array
+    public function clean_content(array $form, array $input, array $context = []): array
     {
+        $fields = array_merge(...array_values($form));
+        $catalog = $context['catalog'] ?? null;
         $content = [];
         $pain_scale = null;
         $missing = [];
 
-        foreach ($form as $fields) {
-            foreach ($fields as $name => $field) {
-                $value = trim((string) ($input[$name] ?? ''));
+        // O mapa corporal vem primeiro: os testes por região dependem das regiões marcadas.
+        uasort($fields, fn($a, $b) => ($a['type'] === 'body_map' ? 0 : 1) <=> ($b['type'] === 'body_map' ? 0 : 1));
 
-                if ($field['type'] === 'pain_scale' || $field['type'] === 'number') {
+        foreach ($fields as $name => $field) {
+            $raw = $input[$name] ?? '';
+
+            switch ($field['type']) {
+                case 'body_map':
+                    $selected = array_map('strval', is_array($raw) ? $raw : []);
+                    $value = array_values(array_filter(array_keys($catalog['regions'] ?? []), fn($id) => in_array($id, $selected, true)));
+                    break;
+
+                case 'region_tests':
+                    $value = $this->clean_region_tests($raw, $content[$field['regions_field']] ?? [], $catalog ?? []);
+                    break;
+
+                case 'goals':
+                    $value = $this->clean_goals($raw);
+                    break;
+
+                case 'goals_check':
+                    $valid = $context['goal_ids'] ?? [];
+                    $value = array_values(array_intersect($valid, array_map('strval', is_array($raw) ? $raw : [])));
+                    break;
+
+                case 'pain_scale':
+                case 'number':
+                    $value = trim((string) (is_array($raw) ? '' : $raw));
+
                     if ($value !== '') {
                         $number = filter_var($value, FILTER_VALIDATE_INT);
                         $max = $field['type'] === 'pain_scale' ? 10 : 999;
@@ -62,27 +139,159 @@ class Clinical_records_model extends EA_Model
 
                         $value = $number;
                     }
-                } elseif (mb_strlen($value) > self::MAX_TEXT_LENGTH) {
-                    throw new InvalidArgumentException(lang('clinical_record_text_too_long') . ' ' . lang('cr_field_' . $name));
-                }
 
-                if (!empty($field['required']) && $value === '') {
-                    $missing[] = lang('cr_field_' . $name);
-                }
+                    if ($field['type'] === 'pain_scale') {
+                        $pain_scale = $value === '' ? null : $value;
+                    }
+                    break;
 
-                if ($field['type'] === 'pain_scale') {
-                    $pain_scale = $value === '' ? null : $value;
-                }
+                default:
+                    $value = trim((string) (is_array($raw) ? '' : $raw));
 
-                $content[$name] = $value;
+                    if (mb_strlen($value) > self::MAX_TEXT_LENGTH) {
+                        throw new InvalidArgumentException(lang('clinical_record_text_too_long') . ' ' . lang('cr_field_' . $name));
+                    }
+            }
+
+            if (!empty($field['required']) && ($value === '' || $value === [])) {
+                $missing[] = lang('cr_field_' . $name);
+            }
+
+            $content[$name] = $value;
+        }
+
+        // Devolve na ordem da ficha.
+        $ordered = [];
+
+        foreach ($form as $section_fields) {
+            foreach (array_keys($section_fields) as $name) {
+                $ordered[$name] = $content[$name];
             }
         }
 
         if ($missing) {
-            throw new InvalidArgumentException(lang('clinical_record_required_fields') . ' ' . implode(', ', $missing) . '.');
+            $names = [];
+
+            foreach ($form as $section_fields) {
+                foreach ($section_fields as $name => $field) {
+                    if (in_array(lang('cr_field_' . $name), $missing, true)) {
+                        $names[] = lang('cr_field_' . $name);
+                    }
+                }
+            }
+
+            throw new InvalidArgumentException(lang('clinical_record_required_fields') . ' ' . implode(', ', $names) . '.');
         }
 
-        return [$content, $pain_scale];
+        return [$ordered, $pain_scale];
+    }
+
+    /**
+     * Resultados dos testes especiais e pontuação dos questionários, só das áreas das regiões marcadas.
+     */
+    private function clean_region_tests(mixed $raw, array $regions, array $catalog): array
+    {
+        $raw = is_array($raw) ? $raw : [];
+        $clean = [];
+
+        foreach ($this->region_blocks($regions, $catalog) as $key => $block) {
+            $area = $catalog['areas'][$block['area']];
+            $tests = [];
+            $questionnaires = [];
+
+            foreach (array_keys($area['tests']) as $test_id) {
+                $result = (string) ($raw[$key]['tests'][$test_id] ?? '');
+
+                if (isset($catalog['test_results'][$result])) {
+                    $tests[$test_id] = $result;
+                }
+            }
+
+            foreach (array_keys($area['questionnaires']) as $questionnaire_id) {
+                $score = trim((string) ($raw[$key]['questionnaires'][$questionnaire_id] ?? ''));
+
+                if ($score !== '') {
+                    $questionnaires[$questionnaire_id] = mb_substr($score, 0, 50);
+                }
+            }
+
+            if ($tests || $questionnaires) {
+                $clean[$key] = array_filter(['tests' => $tests, 'questionnaires' => $questionnaires]);
+            }
+        }
+
+        return $clean;
+    }
+
+    /**
+     * Metas por semana: [id, semana, meta, como atingir]. Linhas sem meta são ignoradas.
+     */
+    private function clean_goals(mixed $raw): array
+    {
+        $goals = [];
+
+        foreach (is_array($raw) ? $raw : [] as $row) {
+            $goal = trim((string) ($row['goal'] ?? ''));
+
+            if ($goal === '') {
+                continue;
+            }
+
+            $week = trim((string) ($row['week'] ?? ''));
+            $week_number = $week === '' ? null : filter_var($week, FILTER_VALIDATE_INT);
+
+            if ($week_number === false || ($week_number !== null && ($week_number < 1 || $week_number > 104))) {
+                throw new InvalidArgumentException(lang('cr_goal_invalid_week'));
+            }
+
+            $id = (string) ($row['id'] ?? '');
+
+            $goals[] = [
+                'id' => preg_match('/^[a-z0-9]{6,20}$/', $id) ? $id : bin2hex(random_bytes(5)),
+                'week' => $week_number,
+                'goal' => mb_substr($goal, 0, 500),
+                'plan' => mb_substr(trim((string) ($row['plan'] ?? '')), 0, 2000),
+            ];
+        }
+
+        usort($goals, fn($a, $b) => ($a['week'] ?? 999) <=> ($b['week'] ?? 999));
+
+        return $goals;
+    }
+
+    /**
+     * Metas da avaliação mais recente do paciente e, para cada uma, a data da evolução em que foi atingida.
+     *
+     * @return array ['assessment' => registro ou null, 'goals' => [...], 'achieved' => [id da meta => data]]
+     */
+    public function goals_progress(array $records): array
+    {
+        $assessment = null;
+
+        foreach ($records as $record) {
+            if ($record['type'] === 'assessment' && !empty($record['content']['goals'])) {
+                $assessment = $record;
+                break; // Os registros vêm do mais recente para o mais antigo.
+            }
+        }
+
+        $achieved = [];
+
+        foreach (array_reverse($records) as $record) {
+            if ($record['type'] !== 'evolution') {
+                continue;
+            }
+
+            foreach ($record['content']['goals_achieved'] ?? [] as $goal_id) {
+                $achieved[$goal_id] ??= $record['record_date'];
+            }
+        }
+
+        return [
+            'assessment' => $assessment,
+            'goals' => $assessment['content']['goals'] ?? [],
+            'achieved' => $achieved,
+        ];
     }
 
     /**

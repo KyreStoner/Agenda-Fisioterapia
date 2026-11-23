@@ -50,11 +50,46 @@ $back_url = site_url('clinical_records/patient/' . (int) $customer['id']);
                     <?php foreach ($fields as $name => $field): ?>
                         <?php
                         $id = 'field-' . str_replace('_', '-', $name);
-                        $value = (string) ($content[$name] ?? '');
+                        $value = is_array($content[$name] ?? null) ? '' : (string) ($content[$name] ?? '');
                         $required = !empty($field['required']);
                         ?>
                         <div class="mb-3">
-                            <?php if ($field['type'] === 'pain_scale'): ?>
+                            <?php if ($field['type'] === 'body_map'): ?>
+                                <div class="form-label"><?= lang('cr_field_' . $name) ?></div>
+                                <?php component('clinical/body_map', [
+                                    'bm_name' => 'fields[' . $name . ']',
+                                    'bm_selected' => array_values((array) ($content[$name] ?? [])),
+                                    'bm_regions' => vars('catalog')['regions'],
+                                    'bm_small' => false,
+                                ]); ?>
+                            <?php elseif ($field['type'] === 'region_tests'): ?>
+                                <div class="form-label"><?= lang('cr_field_' . $name) ?></div>
+                                <?php component('clinical/region_tests', [
+                                    'rt_name' => 'fields[' . $name . ']',
+                                    'rt_map_name' => 'fields[' . $field['regions_field'] . ']',
+                                    'rt_value' => (array) ($content[$name] ?? []),
+                                    'rt_selected' => array_values((array) ($content[$field['regions_field']] ?? [])),
+                                    'rt_blocks' => vars('region_blocks'),
+                                    'rt_catalog' => vars('catalog'),
+                                ]); ?>
+                            <?php elseif ($field['type'] === 'goals'): ?>
+                                <div class="form-label">
+                                    <?= lang('cr_field_' . $name) ?>
+                                    <?php if ($required): ?><span class="text-danger">*</span><?php endif; ?>
+                                </div>
+                                <?php component('clinical/goals_input', [
+                                    'gi_name' => 'fields[' . $name . ']',
+                                    'gi_value' => (array) ($content[$name] ?? []),
+                                ]); ?>
+                            <?php elseif ($field['type'] === 'goals_check'): ?>
+                                <div class="form-label"><?= lang('cr_field_' . $name) ?></div>
+                                <?php component('clinical/goals_check', [
+                                    'gc_name' => 'fields[' . $name . ']',
+                                    'gc_goals' => vars('goals_progress')['goals'] ?? [],
+                                    'gc_achieved' => vars('goals_progress')['achieved'] ?? [],
+                                    'gc_value' => array_values((array) ($content[$name] ?? [])),
+                                ]); ?>
+                            <?php elseif ($field['type'] === 'pain_scale'): ?>
                                 <fieldset>
                                     <legend class="form-label fs-6"><?= lang('cr_field_' . $name) ?></legend>
                                     <div class="d-flex flex-wrap gap-1" role="radiogroup">

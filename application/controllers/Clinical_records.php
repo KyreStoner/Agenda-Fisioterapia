@@ -59,6 +59,9 @@ class Clinical_records extends EA_Controller
                 'evolution' => $this->clinical_records_model->form('evolution'),
             ],
             'can_add' => can('add', PRIV_CLINICAL_RECORDS),
+            'catalog' => $this->clinical_records_model->catalog(),
+            'goals_progress' => $this->clinical_records_model->goals_progress($records),
+            'goal_labels' => $this->goal_labels($records),
             'current_user_id' => (int) session('user_id'),
             'success_message' => $this->session->flashdata('clinical_success'),
         ]);
@@ -142,7 +145,12 @@ class Clinical_records extends EA_Controller
                 throw new InvalidArgumentException(lang('clinical_record_invalid_date'));
             }
 
-            [$content, $pain_scale] = $this->clinical_records_model->clean_content($form, $input);
+            $goals = $this->goals_progress($customer_id, $record_id)['goals'];
+
+            [$content, $pain_scale] = $this->clinical_records_model->clean_content($form, $input, [
+                'catalog' => $this->clinical_records_model->catalog(),
+                'goal_ids' => array_column($goals, 'id'),
+            ]);
 
             if ($record_id) {
                 $appointment_id = $record['id_appointments'] ?: null;
@@ -266,13 +274,31 @@ class Clinical_records extends EA_Controller
 
         $record['type'] = $type;
 
+        $catalog = $this->clinical_records_model->catalog();
+
         $this->render('pages/clinical_record_form', [
             'page_title' => lang($record['id'] ? 'cr_edit_' . $type : 'cr_new_' . $type),
             'customer' => $customer,
             'record' => $record,
             'form' => $this->clinical_records_model->form($type),
+            'catalog' => $catalog,
+            'region_blocks' => $this->clinical_records_model->region_blocks(array_keys($catalog['regions']), $catalog),
+            'goals_progress' => $this->goals_progress((int) $customer['id'], (int) ($record['id'] ?? 0)),
             'error_message' => $error,
         ]);
+    }
+
+    /**
+     * Metas da avaliação mais recente e quando cada uma foi atingida, sem contar o registro em edição.
+     */
+    private function goals_progress(int $customer_id, int $exclude_record_id = 0): array
+    {
+        $records = array_filter(
+            $this->clinical_records_model->get_by_customer($customer_id),
+            fn($record) => $record['id'] !== $exclude_record_id,
+        );
+
+        return $this->clinical_records_model->goals_progress(array_values($records));
     }
 
     private function render(string $view, array $vars): void
@@ -317,6 +343,22 @@ class Clinical_records extends EA_Controller
         $appointment['service_name'] = $service['name'] ?? '';
 
         return $appointment;
+    }
+
+    /**
+     * Texto de cada meta (de todas as avaliações), para mostrar as metas atingidas nas evoluções.
+     */
+    private function goal_labels(array $records): array
+    {
+        $labels = [];
+
+        foreach ($records as $record) {
+            foreach ($record['content']['goals'] ?? [] as $goal) {
+                $labels[$goal['id']] ??= $goal['goal'];
+            }
+        }
+
+        return $labels;
     }
 
     private function versions_by_record(array $records): array

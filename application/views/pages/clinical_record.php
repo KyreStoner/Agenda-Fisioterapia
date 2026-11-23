@@ -26,26 +26,121 @@ $pain_history = array_reverse(array_filter($records, fn($record) => $record['pai
 /**
  * Campos preenchidos de um registro, agrupados por seção.
  */
-$render_content = function (array $form, array $content): void {
-    foreach ($form as $section => $fields) {
-        $filled = array_filter(
-            array_keys($fields),
-            fn($name) => $fields[$name]['type'] !== 'pain_scale' && ($content[$name] ?? '') !== '',
-        );
+$catalog = vars('catalog');
+$goal_labels = vars('goal_labels');
 
-        if (!$filled) {
+/**
+ * Valor de um campo para exibição (HTML já escapado), ou '' se estiver vazio.
+ */
+$render_value = function (array $field, mixed $value) use ($catalog, $goal_labels): string {
+    if ($value === '' || $value === [] || $value === null) {
+        return '';
+    }
+
+    switch ($field['type']) {
+        case 'body_map':
+            $labels = array_map(fn($id) => e($catalog['regions'][$id]['label'] ?? $id), (array) $value);
+
+            return component('clinical/body_map', [
+                'bm_name' => '',
+                'bm_selected' => (array) $value,
+                'bm_regions' => $catalog['regions'],
+                'bm_small' => true,
+            ], true) . '<div class="mt-1">' . implode(', ', $labels) . '</div>';
+
+        case 'region_tests':
+            $html = '';
+
+            foreach ((array) $value as $key => $block) {
+                $area_id = isset($catalog['areas'][$key]) ? $key : preg_replace('/_[de]$/', '', $key);
+                $area = $catalog['areas'][$area_id] ?? null;
+
+                if (!$area) {
+                    continue;
+                }
+
+                $side = str_ends_with($key, '_d') ? ' ' . lang('cr_side_right') : (str_ends_with($key, '_e') ? ' ' . lang('cr_side_left') : '');
+                $items = [];
+
+                foreach ($block['tests'] ?? [] as $test_id => $result) {
+                    $badge = $result === 'positive' ? 'text-bg-danger' : ($result === 'negative' ? 'text-bg-success' : 'text-bg-light border');
+                    $items[] = e($area['tests'][$test_id] ?? $test_id) . ' <span class="badge ' . $badge . '">' . e($catalog['test_results'][$result] ?? $result) . '</span>';
+                }
+
+                foreach ($block['questionnaires'] ?? [] as $questionnaire_id => $score) {
+                    $items[] = e($area['questionnaires'][$questionnaire_id] ?? $questionnaire_id) . ': <strong>' . e($score) . '</strong>';
+                }
+
+                $html .= '<div class="mb-1"><span class="fw-semibold">' . e($area['label'] . $side) . '</span><br>' . implode(' · ', $items) . '</div>';
+            }
+
+            return $html;
+
+        case 'goals':
+            $html = '<ul class="mb-0 ps-3">';
+
+            foreach ((array) $value as $goal) {
+                $html .= '<li>' . ($goal['week'] ? '<span class="text-muted">' . lang('cr_goal_week') . ' ' . (int) $goal['week'] . ':</span> ' : '')
+                    . e($goal['goal']) . ($goal['plan'] !== '' ? '<div class="small text-muted" style="white-space: pre-line;">' . e($goal['plan']) . '</div>' : '') . '</li>';
+            }
+
+            return $html . '</ul>';
+
+        case 'goals_check':
+            return implode('', array_map(
+                fn($id) => '<div><i class="fas fa-check-circle text-success me-1"></i>' . e($goal_labels[$id] ?? $id) . '</div>',
+                (array) $value,
+            ));
+
+        default:
+            return '<span style="white-space: pre-line; overflow-wrap: anywhere;">' . e((string) $value) . '</span>';
+    }
+};
+
+/**
+ * Campos preenchidos de um registro, agrupados por seção. Campos que saíram da ficha continuam aparecendo em
+ * "Outros registros", para não esconder nada do que foi registrado.
+ */
+$render_content = function (array $form, array $content) use ($render_value): void {
+    $known = [];
+
+    foreach ($form as $section => $fields) {
+        $rows = '';
+
+        foreach ($fields as $name => $field) {
+            $known[] = $name;
+
+            if ($field['type'] === 'pain_scale') {
+                continue;
+            }
+
+            $html = $render_value($field, $content[$name] ?? '');
+
+            if ($html !== '') {
+                $rows .= '<dt class="small">' . lang('cr_field_' . $name) . '</dt><dd class="mb-2">' . $html . '</dd>';
+            }
+        }
+
+        if ($rows !== '') {
+            echo '<h6 class="text-uppercase text-muted small fw-semibold mt-3 mb-2">' . lang('cr_section_' . $section) . '</h6>';
+            echo '<dl class="mb-0">' . $rows . '</dl>';
+        }
+    }
+
+    $legacy = '';
+
+    foreach ($content as $name => $value) {
+        if (in_array($name, $known, true) || is_array($value) || trim((string) $value) === '') {
             continue;
         }
 
-        echo '<h6 class="text-uppercase text-muted small fw-semibold mt-3 mb-2">' . lang('cr_section_' . $section) . '</h6>';
-        echo '<dl class="mb-0">';
+        $label = lang('cr_field_' . $name) ?: $name;
+        $legacy .= '<dt class="small">' . e($label) . '</dt><dd class="mb-2">' . $render_value(['type' => 'text'], $value) . '</dd>';
+    }
 
-        foreach ($filled as $name) {
-            echo '<dt class="small">' . lang('cr_field_' . $name) . '</dt>';
-            echo '<dd class="mb-2" style="white-space: pre-line; overflow-wrap: anywhere;">' . e((string) $content[$name]) . '</dd>';
-        }
-
-        echo '</dl>';
+    if ($legacy !== '') {
+        echo '<h6 class="text-uppercase text-muted small fw-semibold mt-3 mb-2">' . lang('cr_section_other') . '</h6>';
+        echo '<dl class="mb-0">' . $legacy . '</dl>';
     }
 };
 ?>
@@ -91,6 +186,46 @@ $render_content = function (array $form, array $content): void {
                href="<?= site_url('clinical_records/create/' . $customer_id . '/evolution' . $query) ?>">
                 <i class="fas fa-plus-square me-2"></i><?= lang('cr_new_evolution') ?>
             </a>
+        </div>
+    <?php endif; ?>
+
+    <?php $progress = vars('goals_progress'); ?>
+    <?php if ($progress['goals']): ?>
+        <?php
+        $total = count($progress['goals']);
+        $done = count(array_filter($progress['goals'], fn($goal) => isset($progress['achieved'][$goal['id']])));
+        $start = strtotime(date('Y-m-d', strtotime($progress['assessment']['record_date'])));
+        ?>
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small text-muted"><?= lang('cr_goals_progress') ?></span>
+                    <span class="fw-semibold"><?= $done ?> <?= lang('cr_goals_of') ?> <?= $total ?></span>
+                </div>
+                <div class="progress mb-2" role="progressbar" aria-valuenow="<?= $done ?>" aria-valuemin="0" aria-valuemax="<?= $total ?>">
+                    <div class="progress-bar bg-success" style="width: <?= $total ? round($done / $total * 100) : 0 ?>%"></div>
+                </div>
+                <ul class="list-unstyled small mb-0">
+                    <?php foreach ($progress['goals'] as $goal): ?>
+                        <li class="mb-1">
+                            <?php if (isset($progress['achieved'][$goal['id']])): ?>
+                                <i class="fas fa-check-circle text-success me-1"></i>
+                            <?php else: ?>
+                                <i class="far fa-circle text-muted me-1"></i>
+                            <?php endif; ?>
+                            <?php if ($goal['week']): ?>
+                                <?php $week_start = strtotime('+' . (($goal['week'] - 1) * 7) . ' days', $start); ?>
+                                <span class="text-muted"><?= lang('cr_goal_week') ?> <?= (int) $goal['week'] ?>
+                                    (<?= date('d/m', $week_start) ?> <?= lang('shift_until') ?> <?= date('d/m', strtotime('+6 days', $week_start)) ?>):</span>
+                            <?php endif; ?>
+                            <?= e($goal['goal']) ?>
+                            <?php if (isset($progress['achieved'][$goal['id']])): ?>
+                                <span class="badge text-bg-success"><?= lang('cr_goal_achieved_on') ?> <?= date('d/m', strtotime($progress['achieved'][$goal['id']])) ?></span>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
         </div>
     <?php endif; ?>
 
