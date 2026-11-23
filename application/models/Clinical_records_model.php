@@ -42,8 +42,77 @@ class Clinical_records_model extends EA_Model
     public function catalog(): array
     {
         $this->config->load('clinical_catalog', true);
+        $this->config->load('clinical_questionnaires', true);
 
-        return $this->config->item('clinical_catalog', 'clinical_catalog');
+        $catalog = $this->config->item('clinical_catalog', 'clinical_catalog');
+        $catalog['questionnaire_forms'] = $this->config->item('clinical_questionnaires', 'clinical_questionnaires') ?: [];
+
+        return $catalog;
+    }
+
+    /**
+     * Questionários de uma área: os da lista da área no catálogo e os com perguntas marcados para ela ('areas').
+     *
+     * @return array [id => nome]
+     */
+    public static function area_questionnaires(string $area_id, array $catalog): array
+    {
+        $questionnaires = $catalog['areas'][$area_id]['questionnaires'] ?? [];
+
+        foreach ($catalog['questionnaire_forms'] ?? [] as $id => $form) {
+            $areas = $form['areas'] ?? [];
+
+            if (in_array('*', $areas, true) || in_array($area_id, $areas, true)) {
+                $questionnaires[$id] = $form['label'];
+            }
+        }
+
+        return $questionnaires;
+    }
+
+    /**
+     * Pontuação de um questionário respondido (todas as perguntas), ou null se faltar resposta.
+     *
+     * @param array $answers [número da pergunta => número da opção]
+     */
+    public static function questionnaire_score(array $form, array $answers): ?string
+    {
+        $total = 0;
+        $max = 0;
+
+        foreach ($form['questions'] as $index => $question) {
+            if (!isset($answers[$index], $question['options'][$answers[$index]])) {
+                return null;
+            }
+
+            $total += $question['options'][$answers[$index]][1];
+            $max += max(array_column($question['options'], 1));
+        }
+
+        if (($form['scoring'] ?? 'sum') === 'percent') {
+            return ($max ? round($total / $max * 100) : 0) . '%';
+        }
+
+        return $total . '/' . $max;
+    }
+
+    /**
+     * Metades do corpo com região marcada ('upper' = membro superior/cervical, 'lower' = membro inferior/lombar).
+     */
+    public static function neuro_quadrants(array $regions, array $catalog): array
+    {
+        $quadrants = [];
+
+        foreach ($regions as $region_id) {
+            $area = $catalog['regions'][$region_id]['area'] ?? null;
+            $quadrant = $area ? $catalog['areas'][$area]['quadrant'] ?? null : null;
+
+            if ($quadrant) {
+                $quadrants[$quadrant] = true;
+            }
+        }
+
+        return array_keys($quadrants);
     }
 
     /**
@@ -118,6 +187,29 @@ class Clinical_records_model extends EA_Model
 
                 case 'goals':
                     $value = $this->clean_goals($raw);
+                    break;
+
+                case 'choice':
+                    $value = (string) (is_array($raw) ? '' : $raw);
+                    $value = in_array($value, $field['options'], true) ? $value : '';
+                    break;
+
+                case 'measure':
+                    $value = $this->clean_measure($raw, $field, $name);
+                    break;
+
+                case 'blood_pressure':
+                    $value = $this->clean_blood_pressure($raw);
+                    break;
+
+                case 'bmi':
+                    $weight = $content[$field['weight_field']] ?? '';
+                    $height = $content[$field['height_field']] ?? '';
+                    $value = $weight !== '' && $height !== '' && $height > 0 ? round($weight / ($height * $height), 1) : '';
+                    break;
+
+                case 'neuro_screen':
+                    $value = $this->clean_neuro_screen($raw, $content[$field['regions_field']] ?? [], $catalog ?? []);
                     break;
 
                 case 'goals_check':
@@ -207,16 +299,129 @@ class Clinical_records_model extends EA_Model
                 }
             }
 
-            foreach (array_keys($area['questionnaires']) as $questionnaire_id) {
+            $answers = [];
+
+            foreach (array_keys(self::area_questionnaires($block['area'], $catalog)) as $questionnaire_id) {
                 $score = trim((string) ($raw[$key]['questionnaires'][$questionnaire_id] ?? ''));
+                $form = $catalog['questionnaire_forms'][$questionnaire_id] ?? null;
+
+                // Respostas das perguntas (quando o questionário tem perguntas cadastradas).
+                if ($form) {
+                    $given = [];
+
+                    foreach ((array) ($raw[$key]['answers'][$questionnaire_id] ?? []) as $index => $option) {
+                        if (isset($form['questions'][$index]['options'][$option]) && $option !== '') {
+                            $given[(int) $index] = (int) $option;
+                        }
+                    }
+
+                    if ($given) {
+                        ksort($given);
+                        $answers[$questionnaire_id] = $given;
+                        // Com todas as perguntas respondidas, a pontuação é a calculada pelo sistema.
+                        $score = self::questionnaire_score($form, $given) ?? $score;
+                    }
+                }
 
                 if ($score !== '') {
                     $questionnaires[$questionnaire_id] = mb_substr($score, 0, 50);
                 }
             }
 
-            if ($tests || $questionnaires) {
-                $clean[$key] = array_filter(['tests' => $tests, 'questionnaires' => $questionnaires]);
+            if ($tests || $questionnaires || $answers) {
+                $clean[$key] = array_filter(['tests' => $tests, 'questionnaires' => $questionnaires, 'answers' => $answers]);
+            }
+        }
+
+        return $clean;
+    }
+
+    /**
+     * Medida numérica com unidade (sinais vitais). Aceita vírgula como separador decimal.
+     */
+    private function clean_measure(mixed $raw, array $field, string $name): float|int|string
+    {
+        $value = str_replace(',', '.', trim((string) (is_array($raw) ? '' : $raw)));
+
+        if ($value === '') {
+            return '';
+        }
+
+        if (!is_numeric($value) || $value < $field['min'] || $value > $field['max']) {
+            throw new InvalidArgumentException(
+                lang('clinical_record_invalid_number') . ' ' . lang('cr_field_' . $name) .
+                    ' (' . $field['min'] . ' – ' . $field['max'] . ' ' . $field['unit'] . ').',
+            );
+        }
+
+        return $field['step'] < 1 ? round((float) $value, 2) : (int) round((float) $value);
+    }
+
+    /**
+     * Pressão arterial: ['sys' => sistólica, 'dia' => diastólica] em mmHg.
+     */
+    private function clean_blood_pressure(mixed $raw): array|string
+    {
+        $systolic = trim((string) ($raw['sys'] ?? ''));
+        $diastolic = trim((string) ($raw['dia'] ?? ''));
+
+        if ($systolic === '' && $diastolic === '') {
+            return '';
+        }
+
+        $systolic = filter_var($systolic, FILTER_VALIDATE_INT);
+        $diastolic = filter_var($diastolic, FILTER_VALIDATE_INT);
+
+        if (
+            $systolic === false ||
+            $diastolic === false ||
+            $systolic < 50 ||
+            $systolic > 300 ||
+            $diastolic < 20 ||
+            $diastolic > 200 ||
+            $systolic <= $diastolic
+        ) {
+            throw new InvalidArgumentException(lang('cr_invalid_blood_pressure'));
+        }
+
+        return ['sys' => $systolic, 'dia' => $diastolic];
+    }
+
+    /**
+     * Dermátomos (sensibilidade) e miótomos (força 0 a 5), direito e esquerdo, só dos níveis da metade do corpo com
+     * região marcada.
+     */
+    private function clean_neuro_screen(mixed $raw, array $regions, array $catalog): array
+    {
+        $raw = is_array($raw) ? $raw : [];
+        $quadrants = self::neuro_quadrants($regions, $catalog);
+        $clean = [];
+
+        foreach ($catalog['neuro_levels'] ?? [] as $level => $info) {
+            if (!in_array($info['quadrant'], $quadrants, true)) {
+                continue;
+            }
+
+            $row = [];
+
+            foreach (['derm_d', 'derm_e'] as $side) {
+                $result = (string) ($raw[$level][$side] ?? '');
+
+                if (isset($catalog['sensation_results'][$result])) {
+                    $row[$side] = $result;
+                }
+            }
+
+            foreach (['myo_d', 'myo_e'] as $side) {
+                $grade = (string) ($raw[$level][$side] ?? '');
+
+                if (preg_match('/^[0-5]$/', $grade)) {
+                    $row[$side] = (int) $grade;
+                }
+            }
+
+            if ($row) {
+                $clean[$level] = $row;
             }
         }
 

@@ -104,6 +104,13 @@
                         </a>
                     <?php endif; ?>
 
+                    <?php if (can('add', PRIV_CLINICAL_RECORDS)): ?>
+                        <a class="dropdown-item" href="<?= site_url('goal_templates') ?>">
+                            <i class="fas fa-bullseye me-2"></i>
+                            <?= lang('goal_templates') ?>
+                        </a>
+                    <?php endif; ?>
+
                     <a class="dropdown-item" href="<?= site_url('account') ?>">
                         <i class="fas fa-user me-2"></i>
                         <?= lang('account') ?>

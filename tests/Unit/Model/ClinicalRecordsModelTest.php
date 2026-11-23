@@ -24,8 +24,9 @@ class ClinicalRecordsModelTest extends TestCase
         $config = [];
 
         require APPPATH . 'config/clinical_catalog.php';
+        require APPPATH . 'config/clinical_questionnaires.php';
 
-        return $config['clinical_catalog'];
+        return $config['clinical_catalog'] + ['questionnaire_forms' => $config['clinical_questionnaires']];
     }
 
     private function assessment(): array
@@ -194,5 +195,94 @@ class ClinicalRecordsModelTest extends TestCase
 
         $this->assertCount(3, $progress['goals']);
         $this->assertSame(['g1aaaa' => '2026-12-03 10:00:00', 'g2bbbb' => '2026-12-10 10:00:00'], $progress['achieved']);
+    }
+
+    private function minimalAssessment(array $extra): array
+    {
+        return array_merge(['chief_complaint' => 'x', 'physio_diagnosis' => 'y', 'goals' => [['week' => '1', 'goal' => 'z']]], $extra);
+    }
+
+    public function testChoicesMeasuresAndBmi(): void
+    {
+        [$content] = $this->model()->clean_content($this->assessment(), $this->minimalAssessment([
+            'smoking' => 'former',
+            'sleep' => 'inventado',
+            'temperature' => '36,5',
+            'heart_rate' => '72',
+            'weight' => '86',
+            'height' => '1,78',
+            'blood_pressure' => ['sys' => '128', 'dia' => '82'],
+        ]), ['catalog' => $this->catalog()]);
+
+        $this->assertSame('former', $content['smoking']);
+        $this->assertSame('', $content['sleep']);
+        $this->assertSame(36.5, $content['temperature']);
+        $this->assertSame(72, $content['heart_rate']);
+        $this->assertSame(['sys' => 128, 'dia' => 82], $content['blood_pressure']);
+        $this->assertSame(27.1, $content['bmi']);
+    }
+
+    public function testMeasureOutOfRangeIsRejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('cr_field_oxygen_saturation');
+
+        $this->model()->clean_content($this->assessment(), $this->minimalAssessment(['oxygen_saturation' => '120']), ['catalog' => $this->catalog()]);
+    }
+
+    public function testBloodPressureNeedsBothValuesAndSystolicAbove(): void
+    {
+        foreach ([['sys' => '120', 'dia' => ''], ['sys' => '80', 'dia' => '120']] as $pressure) {
+            try {
+                $this->model()->clean_content($this->assessment(), $this->minimalAssessment(['blood_pressure' => $pressure]), ['catalog' => $this->catalog()]);
+                $this->fail('Era esperado erro de pressão arterial.');
+            } catch (InvalidArgumentException $e) {
+                $this->assertSame('cr_invalid_blood_pressure', $e->getMessage());
+            }
+        }
+    }
+
+    public function testNeuroScreenKeepsOnlyLevelsOfTheMarkedQuadrant(): void
+    {
+        [$content] = $this->model()->clean_content($this->assessment(), $this->minimalAssessment([
+            'pain_regions' => ['joelho_e'],
+            'neuro_screen' => [
+                'L4' => ['derm_d' => 'normal', 'derm_e' => 'decreased', 'myo_d' => '5', 'myo_e' => '4'],
+                'L5' => ['derm_d' => 'talvez', 'myo_e' => '7'],
+                'C5' => ['derm_d' => 'absent', 'myo_d' => '2'],
+            ],
+        ]), ['catalog' => $this->catalog()]);
+
+        $this->assertSame(['L4' => ['derm_d' => 'normal', 'derm_e' => 'decreased', 'myo_d' => 5, 'myo_e' => 4]], $content['neuro_screen']);
+    }
+
+    public function testQuestionnaireAnswersCalculateTheScore(): void
+    {
+        [$content] = $this->model()->clean_content($this->assessment(), $this->minimalAssessment([
+            'pain_regions' => ['ombro_d'],
+            'region_tests' => ['ombro_d' => [
+                'questionnaires' => ['exemplo_demo' => '99', 'spadi' => '40'],
+                'answers' => ['exemplo_demo' => ['2', '1', '0', '2'], 'spadi' => ['1']],
+            ]],
+        ]), ['catalog' => $this->catalog()]);
+
+        $block = $content['region_tests']['ombro_d'];
+        $this->assertSame('5/8', $block['questionnaires']['exemplo_demo']);
+        $this->assertSame([0 => 2, 1 => 1, 2 => 0, 3 => 2], $block['answers']['exemplo_demo']);
+        $this->assertSame('40', $block['questionnaires']['spadi']);
+        $this->assertArrayNotHasKey('spadi', $block['answers']);
+    }
+
+    public function testPartialAnswersKeepTheTypedScoreAndPercentScoring(): void
+    {
+        $form = ['scoring' => 'percent', 'questions' => [
+            ['text' => 'a', 'options' => [['x', 0], ['y', 3]]],
+            ['text' => 'b', 'options' => [['x', 0], ['y', 1]]],
+        ]];
+
+        $this->assertNull(Clinical_records_model::questionnaire_score($form, [0 => 1]));
+        $this->assertSame('75%', Clinical_records_model::questionnaire_score($form, [0 => 1, 1 => 0]));
+        $this->assertArrayHasKey('exemplo_demo', Clinical_records_model::area_questionnaires('joelho', $this->catalog()));
+        $this->assertArrayHasKey('lysholm', Clinical_records_model::area_questionnaires('joelho', $this->catalog()));
     }
 }

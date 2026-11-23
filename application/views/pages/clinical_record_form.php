@@ -42,18 +42,28 @@ $back_url = site_url('clinical_records/patient/' . (int) $customer['id']);
             </div>
         </div>
 
+        <?php
+        // Largura de cada tipo de campo na grade (os sinais vitais ficam lado a lado).
+        $column = fn(string $type) => match ($type) {
+            'measure', 'blood_pressure', 'bmi' => 'col-6 col-md-4 col-lg-3',
+            'choice', 'text' => 'col-12 col-md-6',
+            'number' => 'col-6 col-md-4',
+            default => 'col-12',
+        };
+        ?>
         <?php foreach (vars('form') as $section => $fields): ?>
             <div class="card mb-3">
                 <div class="card-body">
                     <h5 class="fw-light mb-3"><?= lang('cr_section_' . $section) ?></h5>
 
+                    <div class="row g-3">
                     <?php foreach ($fields as $name => $field): ?>
                         <?php
                         $id = 'field-' . str_replace('_', '-', $name);
                         $value = is_array($content[$name] ?? null) ? '' : (string) ($content[$name] ?? '');
                         $required = !empty($field['required']);
                         ?>
-                        <div class="mb-3">
+                        <div class="<?= $column($field['type']) ?>">
                             <?php if ($field['type'] === 'body_map'): ?>
                                 <div class="form-label"><?= lang('cr_field_' . $name) ?></div>
                                 <?php component('clinical/body_map', [
@@ -72,6 +82,15 @@ $back_url = site_url('clinical_records/patient/' . (int) $customer['id']);
                                     'rt_blocks' => vars('region_blocks'),
                                     'rt_catalog' => vars('catalog'),
                                 ]); ?>
+                            <?php elseif ($field['type'] === 'neuro_screen'): ?>
+                                <div class="form-label"><?= lang('cr_field_' . $name) ?></div>
+                                <?php component('clinical/neuro_screen', [
+                                    'ns_name' => 'fields[' . $name . ']',
+                                    'ns_map_name' => 'fields[' . $field['regions_field'] . ']',
+                                    'ns_value' => (array) ($content[$name] ?? []),
+                                    'ns_selected' => array_values((array) ($content[$field['regions_field']] ?? [])),
+                                    'ns_catalog' => vars('catalog'),
+                                ]); ?>
                             <?php elseif ($field['type'] === 'goals'): ?>
                                 <div class="form-label">
                                     <?= lang('cr_field_' . $name) ?>
@@ -80,6 +99,9 @@ $back_url = site_url('clinical_records/patient/' . (int) $customer['id']);
                                 <?php component('clinical/goals_input', [
                                     'gi_name' => 'fields[' . $name . ']',
                                     'gi_value' => (array) ($content[$name] ?? []),
+                                    'gi_templates' => vars('goal_templates') ?? [],
+                                    'gi_map_name' => 'fields[' . ($field['regions_field'] ?? '') . ']',
+                                    'gi_catalog' => vars('catalog'),
                                 ]); ?>
                             <?php elseif ($field['type'] === 'goals_check'): ?>
                                 <div class="form-label"><?= lang('cr_field_' . $name) ?></div>
@@ -106,6 +128,50 @@ $back_url = site_url('clinical_records/patient/' . (int) $customer['id']);
                                     </div>
                                     <div class="form-text"><?= lang('cr_pain_scale_hint') ?></div>
                                 </fieldset>
+                            <?php elseif ($field['type'] === 'choice'): ?>
+                                <fieldset>
+                                    <legend class="form-label fs-6"><?= lang('cr_field_' . $name) ?></legend>
+                                    <div class="d-flex flex-wrap gap-1" role="radiogroup">
+                                        <?php foreach ($field['options'] as $option): ?>
+                                            <input type="radio" class="btn-check" name="fields[<?= $name ?>]"
+                                                   id="<?= $id . '-' . $option ?>" value="<?= $option ?>"
+                                                <?= $value === $option ? 'checked' : '' ?>>
+                                            <label class="btn btn-sm btn-outline-primary"
+                                                   for="<?= $id . '-' . $option ?>"><?= lang('cr_opt_' . $name . '_' . $option) ?></label>
+                                        <?php endforeach; ?>
+                                        <input type="radio" class="btn-check" name="fields[<?= $name ?>]"
+                                               id="<?= $id ?>-none" value="" <?= $value === '' ? 'checked' : '' ?>>
+                                        <label class="btn btn-sm btn-outline-secondary" for="<?= $id ?>-none"><?= lang('cr_not_informed') ?></label>
+                                    </div>
+                                </fieldset>
+                            <?php elseif ($field['type'] === 'measure'): ?>
+                                <label class="form-label" for="<?= $id ?>"><?= lang('cr_field_' . $name) ?></label>
+                                <div class="input-group">
+                                    <input id="<?= $id ?>" name="fields[<?= $name ?>]" type="number"
+                                           inputmode="<?= $field['step'] < 1 ? 'decimal' : 'numeric' ?>"
+                                           min="<?= $field['min'] ?>" max="<?= $field['max'] ?>" step="<?= $field['step'] ?>"
+                                           class="form-control" value="<?= e($value) ?>" data-measure="<?= $name ?>">
+                                    <span class="input-group-text"><?= e($field['unit']) ?></span>
+                                </div>
+                            <?php elseif ($field['type'] === 'blood_pressure'): ?>
+                                <?php $bp = (array) ($content[$name] ?? []); ?>
+                                <label class="form-label" for="<?= $id ?>-sys"><?= lang('cr_field_' . $name) ?></label>
+                                <div class="input-group">
+                                    <input id="<?= $id ?>-sys" name="fields[<?= $name ?>][sys]" type="number" inputmode="numeric"
+                                           min="50" max="300" class="form-control px-2" placeholder="120"
+                                           aria-label="<?= e(lang('cr_systolic')) ?>" value="<?= e((string) ($bp['sys'] ?? '')) ?>">
+                                    <span class="input-group-text px-1">/</span>
+                                    <input name="fields[<?= $name ?>][dia]" type="number" inputmode="numeric" min="20" max="200"
+                                           class="form-control px-2" placeholder="80" aria-label="<?= e(lang('cr_diastolic')) ?>"
+                                           value="<?= e((string) ($bp['dia'] ?? '')) ?>">
+                                </div>
+                                <div class="form-text">mmHg</div>
+                            <?php elseif ($field['type'] === 'bmi'): ?>
+                                <label class="form-label" for="<?= $id ?>"><?= lang('cr_field_' . $name) ?></label>
+                                <input id="<?= $id ?>" type="text" class="form-control" readonly tabindex="-1"
+                                       data-bmi-weight="<?= e($field['weight_field']) ?>" data-bmi-height="<?= e($field['height_field']) ?>"
+                                       value="<?= e($value) ?>" placeholder="<?= e(lang('cr_bmi_auto')) ?>">
+                                <div class="form-text" data-bmi-class><?= $value !== '' ? e(bmi_class((float) $value)) : '' ?></div>
                             <?php else: ?>
                                 <label class="form-label" for="<?= $id ?>">
                                     <?= lang('cr_field_' . $name) ?>
@@ -116,7 +182,7 @@ $back_url = site_url('clinical_records/patient/' . (int) $customer['id']);
                                               maxlength="20000" <?= $required ? 'required' : '' ?>><?= e($value) ?></textarea>
                                 <?php elseif ($field['type'] === 'number'): ?>
                                     <input id="<?= $id ?>" name="fields[<?= $name ?>]" type="number" inputmode="numeric"
-                                           min="0" max="999" class="form-control" style="max-width: 10rem;"
+                                           min="0" max="999" class="form-control"
                                            value="<?= e($value) ?>" <?= $required ? 'required' : '' ?>>
                                 <?php else: ?>
                                     <input id="<?= $id ?>" name="fields[<?= $name ?>]" type="text" maxlength="500"
@@ -125,9 +191,43 @@ $back_url = site_url('clinical_records/patient/' . (int) $customer['id']);
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
         <?php endforeach; ?>
+
+        <script>
+            // IMC calculado na hora a partir do peso e da altura (o servidor recalcula ao salvar).
+            (() => {
+                const output = document.querySelector('[data-bmi-weight]');
+
+                if (!output) {
+                    return;
+                }
+
+                const weight = document.querySelector('[data-measure="' + output.dataset.bmiWeight + '"]');
+                const height = document.querySelector('[data-measure="' + output.dataset.bmiHeight + '"]');
+                const label = output.parentElement.querySelector('[data-bmi-class]');
+                const classes = <?= json_encode(bmi_classes(), JSON_UNESCAPED_UNICODE) ?>;
+
+                const update = () => {
+                    const w = parseFloat(String(weight.value).replace(',', '.'));
+                    const h = parseFloat(String(height.value).replace(',', '.'));
+
+                    if (w > 0 && h > 0) {
+                        const bmi = Math.round((w / (h * h)) * 10) / 10;
+                        output.value = bmi;
+                        label.textContent = (classes.find((item) => bmi < item[0]) || classes[classes.length - 1])[1];
+                    } else {
+                        output.value = '';
+                        label.textContent = '';
+                    }
+                };
+
+                weight.addEventListener('input', update);
+                height.addEventListener('input', update);
+            })();
+        </script>
 
         <p class="small text-muted"><i class="fas fa-lock me-1"></i><?= lang('cr_privacy_notice') ?></p>
 

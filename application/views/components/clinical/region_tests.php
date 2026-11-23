@@ -50,19 +50,58 @@ foreach ($rt_catalog['regions'] as $region_id => $region) {
                     </div>
                 <?php endforeach; ?>
 
-                <?php if ($area['questionnaires']): ?>
+                <?php $questionnaires = Clinical_records_model::area_questionnaires($block['area'], $rt_catalog); ?>
+                <?php if ($questionnaires): ?>
                     <div class="small text-muted mt-2 mb-1"><?= lang('cr_questionnaires') ?></div>
-                    <?php foreach ($area['questionnaires'] as $questionnaire_id => $questionnaire_label): ?>
-                        <div class="row g-1 align-items-center mb-1">
-                            <label class="col-12 col-sm-7 col-form-label col-form-label-sm py-0"
-                                   for="rq-<?= e($key . '-' . $questionnaire_id) ?>"><?= e($questionnaire_label) ?></label>
-                            <div class="col-12 col-sm-5">
-                                <input type="text" maxlength="50" class="form-control form-control-sm"
-                                       id="rq-<?= e($key . '-' . $questionnaire_id) ?>"
-                                       name="<?= e($rt_name) ?>[<?= e($key) ?>][questionnaires][<?= e($questionnaire_id) ?>]"
-                                       placeholder="<?= e(lang('cr_score')) ?>"
-                                       value="<?= e((string) ($rt_value[$key]['questionnaires'][$questionnaire_id] ?? '')) ?>">
+                    <?php foreach ($questionnaires as $questionnaire_id => $questionnaire_label): ?>
+                        <?php
+                        $q_id = 'rq-' . $key . '-' . $questionnaire_id;
+                        $q_form = $rt_catalog['questionnaire_forms'][$questionnaire_id] ?? null;
+                        $q_answers = $rt_value[$key]['answers'][$questionnaire_id] ?? [];
+                        ?>
+                        <div class="questionnaire mb-2" data-scoring="<?= e($q_form['scoring'] ?? 'sum') ?>">
+                            <div class="row g-1 align-items-center">
+                                <label class="col-12 col-sm-7 col-form-label col-form-label-sm py-0"
+                                       for="<?= e($q_id) ?>"><?= e($questionnaire_label) ?></label>
+                                <div class="col-12 col-sm-5">
+                                    <input type="text" maxlength="50" class="form-control form-control-sm questionnaire-score"
+                                           id="<?= e($q_id) ?>"
+                                           name="<?= e($rt_name) ?>[<?= e($key) ?>][questionnaires][<?= e($questionnaire_id) ?>]"
+                                           placeholder="<?= e(lang('cr_score')) ?>"
+                                           value="<?= e((string) ($rt_value[$key]['questionnaires'][$questionnaire_id] ?? '')) ?>">
+                                </div>
                             </div>
+
+                            <?php if ($q_form): ?>
+                                <details class="mt-1" <?= $q_answers ? 'open' : '' ?>>
+                                    <summary class="small text-primary">
+                                        <?= lang('cr_questionnaire_answer') ?> (<?= count($q_form['questions']) ?> <?= lang('cr_questions') ?>)
+                                    </summary>
+                                    <div class="border rounded p-2 mt-1">
+                                        <?php foreach ($q_form['questions'] as $index => $question): ?>
+                                            <fieldset class="mb-2">
+                                                <legend class="small fw-semibold mb-1"><?= $index + 1 ?>. <?= e($question['text']) ?></legend>
+                                                <?php foreach ($question['options'] as $option_index => [$option_label, $points]): ?>
+                                                    <?php $o_id = $q_id . '-' . $index . '-' . $option_index; ?>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input questionnaire-option" type="radio"
+                                                               id="<?= e($o_id) ?>" value="<?= $option_index ?>" data-points="<?= e((string) $points) ?>"
+                                                               name="<?= e($rt_name) ?>[<?= e($key) ?>][answers][<?= e($questionnaire_id) ?>][<?= $index ?>]"
+                                                            <?= isset($q_answers[$index]) && (int) $q_answers[$index] === $option_index ? 'checked' : '' ?>>
+                                                        <label class="form-check-label small" for="<?= e($o_id) ?>">
+                                                            <?= e($option_label) ?> <span class="text-muted">(<?= e((string) $points) ?>)</span>
+                                                        </label>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </fieldset>
+                                        <?php endforeach; ?>
+                                        <div class="small fw-semibold questionnaire-total" data-questions="<?= count($q_form['questions']) ?>"></div>
+                                        <?php if (!empty($q_form['interpretation'])): ?>
+                                            <div class="form-text"><?= e($q_form['interpretation']) ?></div>
+                                        <?php endif; ?>
+                                    </div>
+                                </details>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -72,6 +111,35 @@ foreach ($rt_catalog['regions'] as $region_id => $region) {
 </div>
 
 <script>
+    // Questionários com perguntas: soma os pontos das respostas e preenche a pontuação quando todas forem respondidas.
+    document.addEventListener('change', (event) => {
+        if (!event.target.classList.contains('questionnaire-option')) {
+            return;
+        }
+
+        const container = event.target.closest('.questionnaire');
+        const total = container.querySelector('.questionnaire-total');
+        const questions = Number(total.dataset.questions);
+        const answered = [...container.querySelectorAll('.questionnaire-option:checked')];
+        const points = answered.reduce((sum, input) => sum + Number(input.dataset.points), 0);
+        const groups = {};
+
+        container.querySelectorAll('.questionnaire-option').forEach((input) => {
+            groups[input.name] = Math.max(groups[input.name] ?? 0, Number(input.dataset.points));
+        });
+
+        const max = Object.values(groups).reduce((sum, value) => sum + value, 0);
+
+        if (answered.length < questions) {
+            total.textContent = '<?= e(lang('cr_questionnaire_progress')) ?> ' + answered.length + '/' + questions;
+            return;
+        }
+
+        const score = container.dataset.scoring === 'percent' ? Math.round((points / max) * 100) + '%' : points + '/' + max;
+        container.querySelector('.questionnaire-score').value = score;
+        total.textContent = '<?= e(lang('cr_questionnaire_total')) ?> ' + score;
+    });
+
     // Mostra só os blocos de testes das regiões marcadas no bonequinho.
     document.addEventListener('body-map-change', (event) => {
         document.querySelectorAll('.region-tests[data-map-name="' + event.detail.name + '"]').forEach((container) => {

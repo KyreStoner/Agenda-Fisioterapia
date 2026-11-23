@@ -5,7 +5,16 @@
  * Variáveis:
  *  - string $gi_name  Nome do campo (ex.: "fields[goals]").
  *  - array  $gi_value Metas salvas: [['id', 'week', 'goal', 'plan'], ...].
+ *  - array  $gi_templates Metas padrão cadastradas (Goal_templates_model::get_all()).
+ *  - string $gi_map_name  Nome do campo do mapa corporal; a lista de metas padrão mostra as gerais e as das áreas
+ *                         marcadas nele.
+ *  - array  $gi_catalog   Catálogo clínico (para ligar região → área).
  */
+$gi_region_areas = array_filter(array_map(fn($region) => $region['area'], $gi_catalog['regions'] ?? []));
+$gi_template_data = array_map(
+    fn($template) => ['area' => $template['area'], 'goal' => $template['goal'], 'plan' => (string) $template['plan']],
+    $gi_templates ?? [],
+);
 $gi_rows = $gi_value ?: [['id' => '', 'week' => 1, 'goal' => '', 'plan' => ''], ['id' => '', 'week' => 2, 'goal' => '', 'plan' => '']];
 
 $gi_row = function (string $index, array $goal) use ($gi_name): string {
@@ -28,6 +37,11 @@ $gi_row = function (string $index, array $goal) use ($gi_name): string {
                     </button>
                 </div>
             </div>
+            <div class="col-12 goal-template-col d-none">
+                <select class="form-select form-select-sm goal-template-select" aria-label="<?= e(lang('goal_template_choose')) ?>">
+                    <option value=""><?= lang('goal_template_choose') ?></option>
+                </select>
+            </div>
             <div class="col-12">
                 <label class="form-label small mb-1"><?= lang('cr_goal_plan') ?></label>
                 <textarea class="form-control form-control-sm" rows="2" maxlength="2000"
@@ -39,8 +53,13 @@ $gi_row = function (string $index, array $goal) use ($gi_name): string {
 };
 ?>
 
-<div class="goals-input">
-    <p class="small text-muted mb-2"><?= lang('cr_goals_hint') ?></p>
+<div class="goals-input" data-map-name="<?= e($gi_map_name ?? '') ?>"
+     data-templates="<?= e(json_encode(array_values($gi_template_data), JSON_UNESCAPED_UNICODE)) ?>"
+     data-region-areas="<?= e(json_encode($gi_region_areas)) ?>">
+    <p class="small text-muted mb-2">
+        <?= lang('cr_goals_hint') ?>
+        <a href="<?= site_url('goal_templates') ?>" target="_blank"><?= lang('goal_templates_manage') ?></a>
+    </p>
     <div class="goal-rows">
         <?php foreach (array_values($gi_rows) as $index => $goal): ?>
             <?= $gi_row((string) $index, $goal) ?>
@@ -55,6 +74,57 @@ $gi_row = function (string $index, array $goal) use ($gi_name): string {
 <?php if (!defined('GOALS_INPUT_ASSETS')): ?>
     <?php define('GOALS_INPUT_ASSETS', true); ?>
     <script>
+        // Metas padrão: cada linha tem uma lista com as metas gerais e as das áreas marcadas no bonequinho.
+        function fillTemplateSelects(container, regions) {
+            const templates = JSON.parse(container.dataset.templates);
+            const regionAreas = JSON.parse(container.dataset.regionAreas);
+
+            if (!regions) {
+                regions = [...document.querySelectorAll('.bm-input:checked')]
+                    .filter((input) => input.name === container.dataset.mapName + '[]')
+                    .map((input) => input.value);
+            }
+
+            const areas = regions.map((region) => regionAreas[region]).filter(Boolean);
+            const available = templates.filter((template) => !template.area || areas.includes(template.area));
+
+            container.querySelectorAll('.goal-template-select').forEach((select) => {
+                const placeholder = select.options[0];
+                select.replaceChildren(placeholder);
+                available.forEach((template, index) => {
+                    const option = new Option(template.goal, String(index));
+                    option.dataset.plan = template.plan;
+                    select.add(option);
+                });
+                select.closest('.goal-template-col').classList.toggle('d-none', available.length === 0);
+            });
+        }
+
+        document.querySelectorAll('.goals-input').forEach((container) => fillTemplateSelects(container));
+
+        document.addEventListener('body-map-change', (event) => {
+            document.querySelectorAll('.goals-input[data-map-name="' + event.detail.name + '"]').forEach((container) => {
+                fillTemplateSelects(container, event.detail.regions);
+            });
+        });
+
+        document.addEventListener('change', (event) => {
+            if (!event.target.classList.contains('goal-template-select') || !event.target.value) {
+                return;
+            }
+
+            const option = event.target.selectedOptions[0];
+            const row = event.target.closest('.goal-row');
+            row.querySelector('input[name$="[goal]"]').value = option.text;
+            const plan = row.querySelector('textarea[name$="[plan]"]');
+
+            if (!plan.value.trim()) {
+                plan.value = option.dataset.plan;
+            }
+
+            event.target.value = '';
+        });
+
         // Adiciona e remove linhas de metas.
         document.addEventListener('click', (event) => {
             const add = event.target.closest('.goals-input .goal-add');
@@ -67,6 +137,7 @@ $gi_row = function (string $index, array $goal) use ($gi_name): string {
                 const weeks = [...rows.querySelectorAll('input[name$="[week]"]')].map((input) => Number(input.value) || 0);
 
                 rows.insertAdjacentHTML('beforeend', html);
+                fillTemplateSelects(container);
                 rows.lastElementChild.querySelector('input[name$="[week]"]').value = Math.max(0, ...weeks) + 1;
                 rows.lastElementChild.querySelector('input[name$="[goal]"]').focus();
             }

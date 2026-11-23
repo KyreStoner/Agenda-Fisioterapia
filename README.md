@@ -10,7 +10,7 @@ Sistema online e responsivo para clínicas de fisioterapia. Funciona no navegado
 - **Agenda da clínica** (pronto): visualizar, confirmar, remarcar e cancelar atendimentos.
 - **Turnos de atendimento** (pronto): dia da semana, horário, intervalo, duração, vigência e frequência de cada profissional, em Usuários → Turnos.
 - **Cadastro de pacientes** (pronto): feito pela equipe da clínica.
-- **Prontuário** (pronto): avaliação fisioterapêutica e evoluções com escala de dor, visível só para o profissional de saúde, com histórico de alterações e registro de acessos.
+- **Prontuário** (pronto): avaliação fisioterapêutica completa (anamnese, estilo de vida, percepção do paciente, mapa da dor, sinais vitais, dermátomos e miótomos, testes especiais e questionários com pontuação automática, metas por semana com metas padrão) e evoluções, visível só para o profissional de saúde, com histórico de alterações, registro de acessos e relatório A4/PDF.
 - **Protocolos** (planejado): modelos de tratamento que podem ser adicionados ao paciente e às evoluções.
 
 ## Status

@@ -48,6 +48,7 @@ $config['clinical_catalog'] = [
 
     'areas' => [
         'cervical' => [
+            'quadrant' => 'upper',
             'label' => 'Coluna cervical',
             'tests' => [
                 'spurling' => 'Teste de Spurling',
@@ -58,11 +59,13 @@ $config['clinical_catalog'] = [
             'questionnaires' => ['ndi' => 'Neck Disability Index (NDI)'],
         ],
         'toracica' => [
+            'quadrant' => null,
             'label' => 'Coluna torácica',
             'tests' => ['adams' => 'Teste de Adams'],
             'questionnaires' => [],
         ],
         'lombar' => [
+            'quadrant' => 'lower',
             'label' => 'Coluna lombar',
             'tests' => [
                 'lasegue' => 'Teste de Lasègue (elevação da perna estendida)',
@@ -73,6 +76,7 @@ $config['clinical_catalog'] = [
             'questionnaires' => ['oswestry' => 'Oswestry (ODI)', 'roland_morris' => 'Roland-Morris'],
         ],
         'ombro' => [
+            'quadrant' => 'upper',
             'label' => 'Ombro',
             'tests' => [
                 'neer' => 'Teste de Neer',
@@ -85,6 +89,7 @@ $config['clinical_catalog'] = [
             'questionnaires' => ['spadi' => 'SPADI', 'dash' => 'DASH'],
         ],
         'cotovelo' => [
+            'quadrant' => 'upper',
             'label' => 'Cotovelo',
             'tests' => [
                 'cozen' => 'Teste de Cozen',
@@ -96,6 +101,7 @@ $config['clinical_catalog'] = [
             'questionnaires' => ['dash' => 'DASH', 'prtee' => 'PRTEE'],
         ],
         'punho_mao' => [
+            'quadrant' => 'upper',
             'label' => 'Punho e mão',
             'tests' => [
                 'phalen' => 'Teste de Phalen',
@@ -105,6 +111,7 @@ $config['clinical_catalog'] = [
             'questionnaires' => ['dash' => 'DASH', 'boston' => 'Questionário de Boston (túnel do carpo)'],
         ],
         'quadril' => [
+            'quadrant' => 'lower',
             'label' => 'Quadril',
             'tests' => [
                 'faber' => 'Teste de Patrick (FABER)',
@@ -116,6 +123,7 @@ $config['clinical_catalog'] = [
             'questionnaires' => ['womac' => 'WOMAC', 'hoos' => 'HOOS'],
         ],
         'joelho' => [
+            'quadrant' => 'lower',
             'label' => 'Joelho',
             'tests' => [
                 'lachman' => 'Teste de Lachman',
@@ -129,6 +137,7 @@ $config['clinical_catalog'] = [
             'questionnaires' => ['lysholm' => 'Lysholm', 'koos' => 'KOOS', 'womac' => 'WOMAC'],
         ],
         'tornozelo_pe' => [
+            'quadrant' => 'lower',
             'label' => 'Tornozelo e pé',
             'tests' => [
                 'gaveta_tornozelo' => 'Gaveta anterior do tornozelo',
@@ -138,6 +147,29 @@ $config['clinical_catalog'] = [
             ],
             'questionnaires' => ['faam' => 'FAAM', 'aofas' => 'AOFAS'],
         ],
+    ],
+
+    // Exame neurológico (dermátomos e miótomos). "quadrant": aparece quando há região marcada no membro superior/coluna
+    // cervical (upper) ou no membro inferior/coluna lombar (lower), conforme o "quadrant" de cada área acima.
+    'neuro_levels' => [
+        'C4' => ['quadrant' => 'upper', 'dermatome' => 'Região do ombro, acima da clavícula', 'myotome' => 'Elevação dos ombros'],
+        'C5' => ['quadrant' => 'upper', 'dermatome' => 'Face lateral do braço', 'myotome' => 'Abdução do ombro'],
+        'C6' => ['quadrant' => 'upper', 'dermatome' => 'Face lateral do antebraço e polegar', 'myotome' => 'Flexão do cotovelo e extensão do punho'],
+        'C7' => ['quadrant' => 'upper', 'dermatome' => 'Dedo médio', 'myotome' => 'Extensão do cotovelo e flexão do punho'],
+        'C8' => ['quadrant' => 'upper', 'dermatome' => 'Dedo mínimo e borda medial da mão', 'myotome' => 'Flexão dos dedos'],
+        'T1' => ['quadrant' => 'upper', 'dermatome' => 'Face medial do antebraço', 'myotome' => 'Abdução dos dedos'],
+        'L2' => ['quadrant' => 'lower', 'dermatome' => 'Face anterior da coxa', 'myotome' => 'Flexão do quadril'],
+        'L3' => ['quadrant' => 'lower', 'dermatome' => 'Face medial do joelho', 'myotome' => 'Extensão do joelho'],
+        'L4' => ['quadrant' => 'lower', 'dermatome' => 'Face medial da perna e maléolo medial', 'myotome' => 'Dorsiflexão do tornozelo'],
+        'L5' => ['quadrant' => 'lower', 'dermatome' => 'Dorso do pé e hálux', 'myotome' => 'Extensão do hálux'],
+        'S1' => ['quadrant' => 'lower', 'dermatome' => 'Borda lateral do pé e calcanhar', 'myotome' => 'Flexão plantar'],
+    ],
+
+    'sensation_results' => [
+        'normal' => 'Normal',
+        'decreased' => 'Diminuída',
+        'increased' => 'Aumentada',
+        'absent' => 'Ausente',
     ],
 
     // Resultado de cada teste especial.

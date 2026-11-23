@@ -186,6 +186,105 @@ $patients = [
     ],
 ];
 
+// Campos da anamnese ampliada, sinais vitais e exame neurológico (avaliação de cada paciente de exemplo).
+$bmi = fn(float $weight, float $height) => round($weight / ($height * $height), 1);
+
+$extra = [
+    'paciente1@exemplo.com.br' => [
+        'surgeries' => 'Nenhuma.',
+        'physical_activity' => 'no', 'physical_activity_details' => 'Parou de jogar futebol há 3 meses por causa da dor.',
+        'smoking' => 'never', 'alcohol' => 'socially', 'cancer_history' => 'family',
+        'cancer_details' => 'Pai com câncer de próstata (exemplo fictício).',
+        'treatments' => 'Fez 5 sessões de acupuntura há 1 ano, com melhora parcial.',
+        'beliefs' => 'Acha que a coluna está "desgastada" e tem medo de piorar ao se movimentar.',
+        'sleep' => 'fair', 'sleep_details' => 'Dorme 6 horas; acorda com dor ao virar na cama.',
+        'mood_stress' => 'Estresse alto no trabalho, prazos apertados.',
+        'psychological_support' => 'Não faz.',
+        'blood_pressure' => ['sys' => 128, 'dia' => 82], 'heart_rate' => 76, 'respiratory_rate' => 16,
+        'oxygen_saturation' => 98, 'temperature' => 36.4, 'weight' => 86, 'height' => 1.78, 'bmi' => $bmi(86, 1.78),
+        'neuro_screen' => [
+            'L4' => ['derm_d' => 'normal', 'derm_e' => 'normal', 'myo_d' => 5, 'myo_e' => 5],
+            'L5' => ['derm_d' => 'decreased', 'derm_e' => 'normal', 'myo_d' => 4, 'myo_e' => 5],
+            'S1' => ['derm_d' => 'normal', 'derm_e' => 'normal', 'myo_d' => 5, 'myo_e' => 5],
+        ],
+        'answers' => ['lombar', 'exemplo_demo', [1, 0, 1, 1]],
+    ],
+    'paciente2@exemplo.com.br' => [
+        'surgeries' => 'Cesárea em 2019.',
+        'physical_activity' => 'yes', 'physical_activity_details' => 'Musculação 3 vezes por semana (parou há 1 mês).',
+        'smoking' => 'never', 'alcohol' => 'no', 'cancer_history' => 'none', 'cancer_details' => '',
+        'treatments' => 'Nenhum acompanhamento anterior para o ombro.',
+        'beliefs' => 'Espera voltar à academia logo; acredita que precisa de repouso total.',
+        'sleep' => 'poor', 'sleep_details' => 'Acorda 2 a 3 vezes por noite com dor ao deitar sobre o ombro.',
+        'mood_stress' => 'Ansiosa por não conseguir treinar.',
+        'psychological_support' => 'Faz terapia quinzenal há 1 ano.',
+        'blood_pressure' => ['sys' => 118, 'dia' => 76], 'heart_rate' => 72, 'respiratory_rate' => 14,
+        'oxygen_saturation' => 99, 'temperature' => 36.6, 'weight' => 62, 'height' => 1.65, 'bmi' => $bmi(62, 1.65),
+        'neuro_screen' => [
+            'C5' => ['derm_d' => 'normal', 'derm_e' => 'normal', 'myo_d' => 4, 'myo_e' => 5],
+            'C6' => ['derm_d' => 'normal', 'derm_e' => 'normal', 'myo_d' => 5, 'myo_e' => 5],
+            'C7' => ['derm_d' => 'normal', 'derm_e' => 'normal', 'myo_d' => 5, 'myo_e' => 5],
+        ],
+        'answers' => ['ombro_d', 'exemplo_demo', [1, 0, 2, 1]],
+    ],
+    'paciente4@exemplo.com.br' => [
+        'surgeries' => 'Nenhuma.',
+        'physical_activity' => 'yes', 'physical_activity_details' => 'Vôlei 2 vezes por semana.',
+        'smoking' => 'never', 'alcohol' => 'socially', 'cancer_history' => 'none', 'cancer_details' => '',
+        'treatments' => 'Usou joelheira por conta própria nas primeiras semanas.',
+        'beliefs' => 'Tem medo de que o joelho "trave" de novo durante o jogo.',
+        'sleep' => 'good', 'sleep_details' => 'Dorme 8 horas, sem dor à noite.',
+        'mood_stress' => 'Tranquila; quer voltar ao time.',
+        'psychological_support' => 'Não faz.',
+        'blood_pressure' => ['sys' => 112, 'dia' => 70], 'heart_rate' => 68, 'respiratory_rate' => 14,
+        'oxygen_saturation' => 99, 'temperature' => 36.5, 'weight' => 58, 'height' => 1.70, 'bmi' => $bmi(58, 1.70),
+        'neuro_screen' => [
+            'L3' => ['derm_d' => 'normal', 'derm_e' => 'normal', 'myo_d' => 5, 'myo_e' => 4],
+            'L4' => ['derm_d' => 'normal', 'derm_e' => 'normal', 'myo_d' => 5, 'myo_e' => 5],
+        ],
+        'answers' => ['joelho_e', 'exemplo_demo', [1, 1, 0, 0]],
+    ],
+];
+
+foreach ($extra as $email => $fields) {
+    if (!isset($patients[$email])) {
+        continue;
+    }
+
+    [$block, $questionnaire, $answers] = $fields['answers'];
+    unset($fields['answers']);
+
+    $content = &$patients[$email]['assessment']['content'];
+    $content = array_merge($content, $fields);
+
+    // Questionário de exemplo respondido no sistema (a pontuação é a soma dos pontos das respostas).
+    $content['region_tests'][$block]['answers'][$questionnaire] = $answers;
+    $content['region_tests'][$block]['questionnaires'][$questionnaire] = array_sum($answers) . '/8';
+    unset($content);
+}
+
+// Metas padrão de exemplo (só se ainda não houver nenhuma cadastrada).
+if (!$db->query('SELECT 1 FROM ea_goal_templates LIMIT 1')->num_rows) {
+    $templates = [
+        [null, 'Reduzir a dor para 3 ou menos', 'Educação em dor, analgesia e exercícios graduais.'],
+        [null, 'Dormir a noite toda sem acordar com dor', 'Orientação de posição para dormir e controle da dor.'],
+        ['lombar', 'Ficar sentado 45 minutos sem dor', 'Pausas ativas, mobilidade lombar e ajuste do posto de trabalho.'],
+        ['lombar', 'Caminhar 30 minutos sem dor', 'Fortalecimento de core e progressão de caminhada.'],
+        ['cervical', 'Girar o pescoço para dirigir sem dor', 'Mobilização cervical e exercícios de controle motor.'],
+        ['ombro', 'Elevar o braço acima da cabeça sem dor', 'Mobilização glenoumeral e fortalecimento do manguito rotador.'],
+        ['ombro', 'Pentear o cabelo sem dor', 'Exercícios funcionais de alcance e fortalecimento escapular.'],
+        ['joelho', 'Descer escadas sem dor', 'Fortalecimento de quadríceps e glúteos, treino excêntrico.'],
+        ['joelho', 'Agachar até 90° sem dor', 'Exercícios em cadeia fechada com progressão de amplitude.'],
+        ['tornozelo_pe', 'Andar sem mancar', 'Treino de marcha, equilíbrio e fortalecimento.'],
+    ];
+    $insert_template = $db->prepare('INSERT INTO ea_goal_templates (area, goal, plan, create_datetime, update_datetime) VALUES (?, ?, ?, NOW(), NOW())');
+
+    foreach ($templates as [$area, $goal, $plan]) {
+        $insert_template->bind_param('sss', $area, $goal, $plan);
+        $insert_template->execute();
+    }
+}
+
 $insert_record = $db->prepare(
     'INSERT INTO ea_clinical_records (type, id_users_customer, id_users_author, author_name, id_appointments, record_date,
         pain_scale, content, create_datetime, update_datetime) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)',

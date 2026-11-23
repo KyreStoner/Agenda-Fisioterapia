@@ -20,12 +20,15 @@ class Clinical_records extends EA_Controller
 
         $this->load->model('appointments_model');
         $this->load->model('clinical_records_model');
+        $this->load->model('goal_templates_model');
         $this->load->model('customers_model');
         $this->load->model('roles_model');
         $this->load->model('services_model');
 
         $this->load->library('accounts');
         $this->load->library('permissions');
+
+        $this->load->helper('clinical');
     }
 
     /**
@@ -336,6 +339,7 @@ class Clinical_records extends EA_Controller
             'catalog' => $catalog,
             'region_blocks' => $this->clinical_records_model->region_blocks(array_keys($catalog['regions']), $catalog),
             'goals_progress' => $this->goals_progress((int) $customer['id'], (int) ($record['id'] ?? 0)),
+            'goal_templates' => $this->goal_templates_model->get_all(),
             'error_message' => $error,
         ]);
     }
