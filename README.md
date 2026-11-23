@@ -20,7 +20,9 @@ Em avaliação: esta branch usa o [Easy!Appointments](https://github.com/alextse
 
 Não precisa instalar nada no computador.
 
-1. No GitHub, abra a branch do projeto e clique em **Code → Codespaces → Create codespace**.
+**Atalho:** [abrir no Codespaces](https://codespaces.new/KyreStoner/Agenda-Fisioterapia/tree/base-easyappointments?quickstart=1) (cria o ambiente na primeira vez e retoma o mesmo nas próximas).
+
+1. Ou, no GitHub, abra a branch do projeto e clique em **Code → Codespaces → Create codespace**.
 2. Aguarde a preparação. Na primeira vez leva alguns minutos, porque instala tudo e carrega dados **fictícios** de demonstração.
 3. O sistema abre numa nova aba. Se não abrir, vá na aba **PORTAS** (Ports) e clique no endereço da porta **8000**.
 
