@@ -306,7 +306,31 @@ App.Utils.CalendarEventPopover = (function () {
                 renderCustomContent(info),
                 $('<hr/>'),
                 createPopoverButtons(displayEdit, displayDelete),
+                renderClinicalRecordButton(data),
             ],
+        });
+    }
+
+    /**
+     * Botão "Prontuário" do paciente da consulta. Só aparece para quem tem acesso ao prontuário (profissional de
+     * saúde); a recepção e o administrador não veem.
+     *
+     * @param {Object} data Dados da consulta.
+     *
+     * @return {jQuery|null}
+     */
+    function renderClinicalRecordButton(data) {
+        const privileges = vars('privileges') || {};
+        const customerId = data.id_users_customer || (data.customer && data.customer.id);
+
+        if (!privileges.clinical_records || !privileges.clinical_records.view || !customerId) {
+            return null;
+        }
+
+        return $('<a/>', {
+            class: 'open-clinical-record btn btn-success w-100 mt-2',
+            href: App.Utils.Url.siteUrl('clinical_records/patient/' + customerId + '?appointment=' + data.id),
+            html: [$('<i/>', {class: 'fas fa-notes-medical me-2'}), $('<span/>', {text: lang('clinical_record')})],
         });
     }
 

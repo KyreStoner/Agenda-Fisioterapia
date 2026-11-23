@@ -72,6 +72,7 @@ const PRIV_SYSTEM_SETTINGS = 'system_settings';
 const PRIV_USER_SETTINGS = 'user_settings';
 const PRIV_WEBHOOKS = 'webhooks';
 const PRIV_BLOCKED_PERIODS = 'blocked_periods';
+const PRIV_CLINICAL_RECORDS = 'clinical_records'; // Prontuário: só profissionais de saúde.
 
 const DATE_FORMAT_DMY = 'DMY';
 const DATE_FORMAT_MDY = 'MDY';

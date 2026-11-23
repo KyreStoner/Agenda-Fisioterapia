@@ -26,11 +26,21 @@ Instruções permanentes para qualquer assistente (Claude, Codex etc.) que traba
 1. **Agendamento**
    - Área pública do paciente: ver horários disponíveis e marcar consulta.
    - Área interna: agenda da clínica (visualizar, confirmar, remarcar, cancelar).
-   - Configuração (aprovada pelo usuário, já existe no painel): nome e cor em Configurações → Geral; serviços com duração e **valor** em Serviços (o preço é por serviço/especialidade); horário de cada fisioterapeuta por dia da semana, com pausas (almoço) e exceções, em Usuários → Atendentes → Horário de atendimento. O que é configurado ali reflete direto nos horários que o paciente vê.
+   - Configuração: nome e cor em Configurações → Geral; serviços com duração e **valor** em Serviços (o preço é por serviço/especialidade).
+   - **Turnos** (Usuários → Turnos, pedido do usuário com base na tela de turnos que ele conhece, só como referência visual): cada turno tem dia da semana (ou "dias úteis"/"todos os dias"), horário inicial e final, intervalo, **duração** (passo da grade de horários), **vigência** e frequência (toda semana ou semana sim, semana não). Tabela `provider_shifts` (migração 071), model `Provider_shifts_model`, library `Shifts`, controller `Provider_shifts`.
+     - Com turnos, a `Availability` usa a grade do turno (início + N × duração, recomeçando após o intervalo; o atendimento inteiro precisa caber num período livre). Exceções de horário de uma data têm prioridade. Sem turnos, vale o `working_plan` original.
+     - Salvar turnos sincroniza o `working_plan` (usado pela agenda interna para sombrear horas sem atendimento). Excluir o último turno volta o profissional ao horário padrão da clínica.
+     - Na ficha do profissional, a aba de horário semanal fica escondida (o `providers.js` ainda a lê) e aponta para os Turnos; as exceções de data continuam lá.
    - A validação de e-mail do agendamento é só de formato, por enquanto (o usuário não quer algo mais robusto agora).
 2. **Cadastro de pacientes**: feito pela equipe que usa o sistema (profissional ou recepção).
+   - Nomes na interface: **Paciente** (não "cliente"), **Profissional** (não "atendente"), **Recepcionista** (não "secretária"). Os textos do Google ("ID do Cliente") ficam como estão.
 3. **Evolução clínica**: registro de cada atendimento no histórico do paciente.
    - Fluxo pedido pelo usuário: a fisioterapeuta entra no painel, abre o paciente que foi agendado pela agenda e cria ali a **avaliação** dele; depois registra as evoluções.
+   - Implementado (migração 072, controller `Clinical_records`, model `Clinical_records_model`, views `clinical_record*.php`): botão "Prontuário" no popup da consulta e "Abrir prontuário" na tela de Pacientes; linha do tempo com avaliação e evoluções, evolução da dor, versões anteriores e registro de acessos.
+   - Fichas definidas em `application/config/clinical_forms.php` (campos guardados em JSON). Modelo aprovado pelo usuário: anamnese, dor (escala 0 a 10), exame físico, diagnóstico fisioterapêutico, objetivos e plano; evolução com dor, condutas, resposta, intercorrências e orientações. Outras especialidades virão: crie novas fichas nesse arquivo.
+   - **Acesso (decisão do usuário)**: só profissional de saúde vê o prontuário (permissão `clinical_records` nos perfis: provider = ver/criar/editar). Administrador e recepcionista **não** veem conteúdo clínico. A recepcionista vê o cadastro do paciente e a agenda dos profissionais liberados para ela (vínculo recepcionista → profissionais do próprio sistema).
+   - Registros não são excluídos; só o autor edita, e cada edição guarda a versão anterior (`clinical_record_versions`). Todo acesso/criação/alteração vai para `clinical_access_log`. Paciente com prontuário não pode ser excluído (FK RESTRICT + mensagem no `Customers_model`). Atenção: a exclusão automática de dados pessoais (`data_retention_days`) não pode apagar quem tem prontuário.
+   - Ainda não feito: impressão/PDF do prontuário, assinatura e número do CREFITO do profissional nos registros, tela de auditoria para o administrador.
 4. **Protocolos**: modelos de tratamento/condutas que podem ser cadastrados e adicionados ao paciente ou à evolução.
 
 ## Dados sensíveis
@@ -38,6 +48,7 @@ Instruções permanentes para qualquer assistente (Claude, Codex etc.) que traba
 - O sistema guarda dados de saúde, que são dados pessoais sensíveis pela **LGPD**. Prontuário de fisioterapia também segue as normas do **COFFITO** sobre registro e guarda.
 - Exigências: login com níveis de acesso, registro de quem acessou ou alterou cada prontuário, conexão HTTPS e backups.
 - Nunca coloque dados reais de pacientes, credenciais ou tokens no repositório, nos exemplos ou nos testes. Use dados fictícios.
+  - Única exceção: os logins **fictícios** do ambiente de demonstração (`administrator`, `fisio`, `recepcao`, em `.devcontainer/`), que só existem no Codespace. Num servidor de verdade eles não podem existir.
 
 ## Base técnica: Easy!Appointments (aprovada pelo usuário)
 
@@ -50,18 +61,20 @@ Instruções permanentes para qualquer assistente (Claude, Codex etc.) que traba
   - `application/migrations`: alterações do banco. Sempre crie a próxima migração numerada e nunca edite uma existente.
   - `application/language/portuguese-br`: textos em português.
   - `application/views` e `assets/`: telas, JS e SCSS.
-- Os arquivos `.min.js` e `.css` de `assets/` são gerados pelo gulp e ignorados pelo git. Mudanças em `assets/js` ou `assets/css/*.scss` só aparecem depois de `npx gulp compile` (inclusive num Codespace já criado). Mudanças em views, controllers e traduções valem na hora.
+- Os arquivos `.min.js` e `.css` de `assets/` são gerados pelo gulp e ignorados pelo git. O `start.sh` roda `npx gulp scripts styles` a cada início, então num Codespace já criado basta rodá-lo de novo. Mudanças em views, controllers e traduções valem na hora.
+- As telas novas (Turnos, Prontuário) são renderizadas no servidor, com formulários POST e `csrf_token`, sem depender de JS compilado.
+- Testes: `vendor/bin/phpunit`. O teste `TimezonesTest::testFlatArrayResolvesDeprecatedIdentifiers` já falhava antes das mudanças (depende da base de fusos do sistema).
 - O menu do painel só fica aberto a partir de 1200px (`navbar-expand-xl`); abaixo disso recolhe no botão, para não haver rolagem lateral no tablet.
 - Configuração local em `config.php` (cópia de `config-sample.php`, ignorada pelo git).
 - Comandos de console: `php index.php console install|migrate|seed|backup`.
-- Ambiente de demonstração para o usuário ver o sistema: GitHub Codespaces, configurado em `.devcontainer/`. O `setup.sh` instala tudo e carrega dados fictícios com `demo-data.sh`, e o `start.sh` (re)inicia o servidor na porta 8000 com o `router.php`. O Codespaces repassa as requisições com `Host: localhost:8000` e o endereço público em `X-Forwarded-Host`; o `router.php` corrige isso para os links de CSS, JS e imagens não apontarem para localhost (sem ele a página abre sem estilos). Ao mudar dependências ou o processo de instalação, mantenha esses scripts funcionando.
+- Ambiente de demonstração para o usuário ver o sistema: GitHub Codespaces, configurado em `.devcontainer/`. O `setup.sh` instala tudo e carrega dados fictícios com `demo-data.sh` (que chama `demo-logins.sh`: logins fictícios `fisio`/`fisio1234` e `recepcao`/`recepcao1234`, só para a demonstração), e o `start.sh` aplica migrações, recompila assets e (re)inicia o servidor na porta 8000 com o `router.php`. O Codespaces repassa as requisições com `Host: localhost:8000` e o endereço público em `X-Forwarded-Host`; o `router.php` corrige isso para os links de CSS, JS e imagens não apontarem para localhost (sem ele a página abre sem estilos). Ao mudar dependências ou o processo de instalação, mantenha esses scripts funcionando.
 - Os módulos novos (prontuário, evolução, protocolos) devem seguir esse mesmo padrão: migração + model + controller + view + JS + textos em `portuguese-br`.
 - **Licença GPL-3.0 herdada**: o projeto inteiro passa a ser GPL-3.0. Mantenha os avisos de copyright e licença do código original e um aviso legal discreto no rodapé do painel. A marca e o visual podem ser personalizados.
 
 ## Pendências (decidir com o usuário)
 
 - Hospedagem.
-- Um profissional ou vários? Uma unidade ou várias?
+- Por enquanto **uma fisioterapeuta** e uma especialidade; outras especialidades virão (o sistema já aceita vários profissionais). Uma unidade ou várias?
 - Lembretes de consulta (WhatsApp, e-mail)?
 - O paciente terá login próprio ou só agenda com dados básicos? (Por enquanto o usuário aprovou o formulário atual: nome, sobrenome, e-mail, telefone, endereço, cidade, CEP e observações.)
-- Campos da avaliação e da evolução fisioterapêutica (definir com o usuário antes de construir o módulo).
+- Protocolos de tratamento (módulo 4).

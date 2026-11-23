@@ -6,15 +6,16 @@ Sistema online e responsivo para clínicas de fisioterapia. Funciona no navegado
 
 ## Funcionalidades planejadas
 
-- **Agendamento online**: o paciente vê os horários disponíveis e marca a consulta pelo celular.
-- **Agenda da clínica**: visualizar, confirmar, remarcar e cancelar atendimentos.
-- **Cadastro de pacientes**: feito pela equipe da clínica.
-- **Evolução clínica**: registro de cada atendimento no histórico do paciente.
-- **Protocolos**: modelos de tratamento que podem ser adicionados ao paciente e às evoluções.
+- **Agendamento online** (pronto): o paciente vê os horários disponíveis e marca a consulta pelo celular.
+- **Agenda da clínica** (pronto): visualizar, confirmar, remarcar e cancelar atendimentos.
+- **Turnos de atendimento** (pronto): dia da semana, horário, intervalo, duração, vigência e frequência de cada profissional, em Usuários → Turnos.
+- **Cadastro de pacientes** (pronto): feito pela equipe da clínica.
+- **Prontuário** (pronto): avaliação fisioterapêutica e evoluções com escala de dor, visível só para o profissional de saúde, com histórico de alterações e registro de acessos.
+- **Protocolos** (planejado): modelos de tratamento que podem ser adicionados ao paciente e às evoluções.
 
 ## Status
 
-Em avaliação: esta branch usa o [Easy!Appointments](https://github.com/alextselegidis/easyappointments) 1.6.1 como base do agendamento. Os módulos de prontuário (evolução e protocolos) ainda serão desenvolvidos. As decisões e requisitos do projeto estão em [AGENTS.md](AGENTS.md).
+Base aprovada: o [Easy!Appointments](https://github.com/alextselegidis/easyappointments) 1.6.1, personalizado para fisioterapia (turnos, prontuário, textos e marca). O módulo de protocolos ainda será desenvolvido. As decisões e requisitos do projeto estão em [AGENTS.md](AGENTS.md).
 
 ## Ver o sistema funcionando (GitHub Codespaces)
 
@@ -27,7 +28,27 @@ Não precisa instalar nada no computador.
 3. O sistema abre numa nova aba. Se não abrir, vá na aba **PORTAS** (Ports) e clique no endereço da porta **8000**.
 
 - Agendamento do paciente: o endereço principal.
-- Painel da clínica: acrescente `/index.php/login` ao endereço. Usuário `administrator`, senha `administrator`.
+- Painel da clínica: acrescente `/index.php/login` ao endereço.
+
+Logins **fictícios** de demonstração (só para o Codespace; nunca use em produção):
+
+| Perfil | Usuário | Senha | O que vê |
+| --- | --- | --- | --- |
+| Administrador | `administrator` | `administrator` | Configurações, usuários, turnos, agenda e pacientes (sem prontuário) |
+| Fisioterapeuta | `fisio` | `fisio1234` | Agenda, pacientes e **prontuário** |
+| Recepcionista | `recepcao` | `recepcao1234` | Agenda e cadastro de pacientes (sem prontuário) |
+
+### Atualizar um Codespace já criado
+
+No **Terminal** do Codespace:
+
+```bash
+git pull origin claude/epic-planck-cccatl
+bash .devcontainer/start.sh
+bash .devcontainer/demo-logins.sh
+```
+
+O `start.sh` aplica as alterações do banco, recompila JS e CSS e reinicia o servidor. O `demo-logins.sh` cria ou redefine os logins da tabela acima.
 
 Se a página abrir só com texto, sem cores e sem botões, abra a aba **Terminal**, rode `bash .devcontainer/start.sh` e recarregue a página.
 

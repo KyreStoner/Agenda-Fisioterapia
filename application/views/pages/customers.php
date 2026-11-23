@@ -63,6 +63,26 @@
                     <?php endif; ?>
                 </div>
 
+                <?php if (can('view', PRIV_CLINICAL_RECORDS)): ?>
+                    <?php // Prontuário do paciente selecionado (só para profissionais de saúde). ?>
+                    <a id="open-clinical-record" class="btn btn-success ms-sm-auto mt-2 mt-sm-0 d-none"
+                       data-base="<?= site_url('clinical_records/patient') ?>/" href="#">
+                        <i class="fas fa-notes-medical me-2"></i>
+                        <?= lang('cr_open_record') ?>
+                    </a>
+                    <script>
+                        // Mostra o botão quando há um paciente selecionado e aponta para o prontuário dele.
+                        document.addEventListener('click', () => {
+                            setTimeout(() => {
+                                const link = document.getElementById('open-clinical-record');
+                                const customerId = document.getElementById('customer-id').value;
+
+                                link.classList.toggle('d-none', !customerId);
+                                link.href = customerId ? link.dataset.base + customerId : '#';
+                            });
+                        });
+                    </script>
+                <?php endif; ?>
             </div>
 
             <input id="customer-id" type="hidden">

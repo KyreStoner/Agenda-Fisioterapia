@@ -327,6 +327,14 @@ class Customers_model extends EA_Model
             );
         }
 
+        // O prontuário precisa ser guardado (COFFITO): paciente com registros clínicos não pode ser excluído.
+        if (
+            $this->db->table_exists('clinical_records') &&
+            $this->db->get_where('clinical_records', ['id_users_customer' => $customer_id], 1)->num_rows()
+        ) {
+            throw new InvalidArgumentException(lang('patient_has_clinical_records'));
+        }
+
         // Anonymize consent records before deleting customer (GDPR compliance)
         $this->db->where('id_users', $customer_id);
         $this->db->update('consents', [

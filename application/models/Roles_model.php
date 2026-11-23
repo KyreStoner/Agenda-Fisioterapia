@@ -32,6 +32,7 @@ class Roles_model extends EA_Model
         'users' => 'integer',
         'system_settings' => 'integer',
         'user_settings' => 'integer',
+        'clinical_records' => 'integer',
     ];
 
     /**
