@@ -66,3 +66,18 @@ if (!function_exists('setting')) {
         return $setting['value'] ?? $default;
     }
 }
+
+if (!function_exists('app_name')) {
+    /**
+     * Nome do sistema, exibido no painel, nos títulos das páginas e nos e-mails.
+     *
+     * Vem da configuração "app_name" (Configurações → Geral). Se ela ainda não existir, usa o valor inicial
+     * definido em application/config/app.php.
+     *
+     * @return string
+     */
+    function app_name(): string
+    {
+        return (string) (setting('app_name') ?: config('app_name'));
+    }
+}

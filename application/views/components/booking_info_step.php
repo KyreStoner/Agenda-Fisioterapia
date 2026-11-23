@@ -36,7 +36,7 @@
                                 <span class="text-danger">*</span>
                             <?php endif; ?>
                         </label>
-                        <input type="text" id="first-name"
+                        <input type="text" id="first-name" autocomplete="given-name"
                                class="<?= $require_first_name ? 'required' : '' ?> form-control" maxlength="100"/>
                     </div>
                 <?php endif; ?>
@@ -49,7 +49,7 @@
                                 <span class="text-danger">*</span>
                             <?php endif; ?>
                         </label>
-                        <input type="text" id="last-name"
+                        <input type="text" id="last-name" autocomplete="family-name"
                                class="<?= $require_last_name ? 'required' : '' ?> form-control" maxlength="120"/>
                     </div>
                 <?php endif; ?>
@@ -62,7 +62,7 @@
                                 <span class="text-danger">*</span>
                             <?php endif; ?>
                         </label>
-                        <input type="text" id="email"
+                        <input type="email" id="email" inputmode="email" autocomplete="email"
                                class="<?= $require_email ? 'required' : '' ?> form-control" maxlength="120"/>
                     </div>
                 <?php endif; ?>
@@ -75,7 +75,7 @@
                                 <span class="text-danger">*</span>
                             <?php endif; ?>
                         </label>
-                        <input type="text" id="phone-number" maxlength="60"
+                        <input type="tel" id="phone-number" inputmode="tel" autocomplete="tel" maxlength="60"
                                class="<?= $require_phone_number ? 'required' : '' ?> form-control"/>
                     </div>
                 <?php endif; ?>
@@ -117,7 +117,7 @@
                                 <span class="text-danger">*</span>
                             <?php endif; ?>
                         </label>
-                        <input type="text" id="zip-code" class="<?= $require_zip_code ? 'required' : '' ?> form-control"
+                        <input type="text" id="zip-code" inputmode="numeric" autocomplete="postal-code" class="<?= $require_zip_code ? 'required' : '' ?> form-control"
                                maxlength="120"/>
                     </div>
                 <?php endif; ?>
@@ -152,6 +152,17 @@
 
         </div>
     </div>
+
+    <?php // Mensagem de erro da validação (ex.: e-mail inválido), preenchida pelo booking.js. ?>
+    <div id="form-message" class="text-danger text-center small fw-semibold mt-3" role="alert" aria-live="polite"></div>
+    <script>
+        // Some com a mensagem de erro assim que o paciente começa a corrigir os dados.
+        document.addEventListener('input', (event) => {
+            if (event.target.closest('#wizard-frame-3')) {
+                document.getElementById('form-message').textContent = '';
+            }
+        });
+    </script>
 
     <div class="command-buttons text-center my-3 mx-auto d-md-flex justify-content-md-between">
         <button type="button" id="button-back-3" class="btn button-back btn-outline-secondary" style="min-width: 120px; margin-right: 10px;"

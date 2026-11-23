@@ -591,4 +591,8 @@ $lang['caldav_sync_failed_credentials'] = 'The CalDAV server rejected the user n
 $lang['caldav_sync_failed_unreachable'] = 'The CalDAV server could not be reached. Make sure that it is running and that the connection URL is correct.';
 $lang['caldav_private_host_warning'] = 'This server is on a private network. Connecting will add its host to the allowed connection URLs.';
 $lang['caldav_allow_host_and_connect'] = 'Allow and connect';
+$lang['app_name'] = 'System name';
+$lang['app_name_hint'] = 'Application name, shown at the top of the backend, in page titles and in emails.';
+$lang['based_on'] = 'Based on';
+$lang['theme_hint'] = 'Visual style of the booking page.';
 // End

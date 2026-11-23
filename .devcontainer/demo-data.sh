@@ -32,7 +32,7 @@ SET @admin  = (SELECT u.id FROM ea_users u JOIN ea_roles r ON r.id = u.id_roles 
 SET @fisio  = (SELECT u.id FROM ea_users u JOIN ea_roles r ON r.id = u.id_roles WHERE r.slug = 'provider' ORDER BY u.id LIMIT 1);
 SET @sessao = (SELECT MIN(id) FROM ea_services);
 
-UPDATE ea_settings SET value = 'Sistema de Agendamento Fisioterapia' WHERE name = 'company_name';
+UPDATE ea_settings SET value = 'Clínica Exemplo de Fisioterapia' WHERE name = 'company_name';
 UPDATE ea_settings SET value = 'contato@clinica-exemplo.com.br' WHERE name = 'company_email';
 UPDATE ea_settings SET value = 'military' WHERE name = 'time_format';
 UPDATE ea_settings SET value = 'monday' WHERE name = 'first_weekday';

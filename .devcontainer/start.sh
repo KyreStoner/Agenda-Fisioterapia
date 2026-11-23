@@ -6,6 +6,14 @@ cd "$(dirname "$0")/.."
 
 sudo service mariadb start >/dev/null
 
+# Aplica as alterações novas do banco (migrações), só se o sistema já estiver instalado.
+DB_NAME="${DB_NAME:-agenda_fisio}"
+DB_USER="${DB_USER:-agenda}"
+DB_PASS="${DB_PASS:-agenda-dev-local}"   # Apenas para o ambiente local de demonstração.
+if [ -f config.php ] && mysql -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" -e "SELECT 1 FROM ea_settings LIMIT 1" >/dev/null 2>&1; then
+    php index.php console migrate
+fi
+
 pkill -f "php -S 0.0.0.0:8000" 2>/dev/null || true
 for _ in $(seq 1 20); do
     (exec 3<>/dev/tcp/127.0.0.1/8000) 2>/dev/null || break

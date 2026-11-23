@@ -84,6 +84,7 @@ class General_settings extends EA_Controller
      * Allowed setting names that can be modified via this controller.
      */
     private array $allowed_settings = [
+        'app_name',
         'company_name',
         'company_email',
         'company_link',

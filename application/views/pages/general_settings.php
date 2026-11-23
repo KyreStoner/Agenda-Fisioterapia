@@ -29,6 +29,19 @@
                                 <h5 class="mb-3 fw-light"><?= lang('company') ?></h5>
 
                                 <div class="mb-3">
+                                    <label class="form-label" for="app-name">
+                                        <?= lang('app_name') ?>
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <input id="app-name" data-field="app_name" class="required form-control" maxlength="100">
+                                    <div class="form-text text-muted">
+                                        <small>
+                                            <?= lang('app_name_hint') ?>
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
                                     <label class="form-label" for="company-name">
                                         <?= lang('company_name') ?>
                                         <span class="text-danger">*</span>
@@ -131,7 +144,7 @@
 
                                     <div class="form-text text-muted">
                                         <small>
-                                            <?= lang('company_color_hint') ?>
+                                            <?= lang('theme_hint') ?>
                                         </small>
                                     </div>
                                 </div>
