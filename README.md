@@ -29,6 +29,8 @@ Não precisa instalar nada no computador.
 - Agendamento do paciente: o endereço principal.
 - Painel da clínica: acrescente `/index.php/login` ao endereço. Usuário `administrator`, senha `administrator`.
 
+Se a página abrir só com texto, sem cores e sem botões, abra a aba **Terminal**, rode `bash .devcontainer/start.sh` e recarregue a página.
+
 O link é privado (só abre com a sua conta do GitHub). O Codespace desliga sozinho após um tempo sem uso. Para voltar, abra **Code → Codespaces** e clique nele novamente.
 
 Os scripts ficam em `.devcontainer/`. Para recarregar só os dados de demonstração em um banco limpo, rode `php index.php console install` e depois `bash .devcontainer/demo-data.sh`.

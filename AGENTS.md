@@ -45,7 +45,7 @@ Instruções permanentes para qualquer assistente (Claude, Codex etc.) que traba
   - `application/views` e `assets/`: telas, JS e SCSS.
 - Configuração local em `config.php` (cópia de `config-sample.php`, ignorada pelo git).
 - Comandos de console: `php index.php console install|migrate|seed|backup`.
-- Ambiente de demonstração para o usuário ver o sistema: GitHub Codespaces, configurado em `.devcontainer/`. O `setup.sh` instala tudo e carrega dados fictícios com `demo-data.sh`, e o `start.sh` sobe o servidor na porta 8000. Ao mudar dependências ou o processo de instalação, mantenha esses scripts funcionando.
+- Ambiente de demonstração para o usuário ver o sistema: GitHub Codespaces, configurado em `.devcontainer/`. O `setup.sh` instala tudo e carrega dados fictícios com `demo-data.sh`, e o `start.sh` (re)inicia o servidor na porta 8000 com o `router.php`. O Codespaces repassa as requisições com `Host: localhost:8000` e o endereço público em `X-Forwarded-Host`; o `router.php` corrige isso para os links de CSS, JS e imagens não apontarem para localhost (sem ele a página abre sem estilos). Ao mudar dependências ou o processo de instalação, mantenha esses scripts funcionando.
 - Os módulos novos (prontuário, evolução, protocolos) devem seguir esse mesmo padrão: migração + model + controller + view + JS + textos em `portuguese-br`.
 - **Licença GPL-3.0 herdada**: o projeto inteiro passa a ser GPL-3.0. Mantenha os avisos de copyright e licença do código original e um aviso legal discreto no rodapé do painel. A marca e o visual podem ser personalizados.
 
