@@ -50,7 +50,7 @@ bash .devcontainer/demo-logins.sh
 
 O `start.sh` aplica as alterações do banco, recompila JS e CSS e reinicia o servidor. O `demo-logins.sh` cria ou redefine os logins da tabela acima.
 
-Se a página abrir só com texto, sem cores e sem botões, abra a aba **Terminal**, rode `bash .devcontainer/start.sh` e recarregue a página.
+Se a página abrir só com texto, sem cores e sem botões, ou mostrar **HTTP ERROR 404**, abra a aba **Terminal**, rode `bash .devcontainer/start.sh` e espere a mensagem **OK** (uns 30 segundos). Depois recarregue a página. Se o editor do Codespace mostrar que ele parou, reinicie por lá antes.
 
 O link é privado (só abre com a sua conta do GitHub). O Codespace desliga sozinho após um tempo sem uso. Para voltar, abra **Code → Codespaces** e clique nele novamente.
 
