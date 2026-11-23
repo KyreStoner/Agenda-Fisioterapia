@@ -24,25 +24,42 @@ if [ -d node_modules ]; then
 fi
 
 echo "4/4 Reiniciando o servidor na porta 8000..."
-pkill -f "php -S 0.0.0.0:8000" 2>/dev/null || true
+pkill -f "php -S .*:8000" 2>/dev/null || true
 for _ in $(seq 1 20); do
     (exec 3<>/dev/tcp/127.0.0.1/8000) 2>/dev/null || break
     sleep 0.25
 done
 
+responds() { curl -s -o /dev/null -m 3 -w '%{http_code}' "http://$1:8000/" 2>/dev/null || true; }
+
 # O router.php faz o sistema usar o endereço público do Codespaces (veja o arquivo).
-setsid nohup php -S 0.0.0.0:8000 .devcontainer/router.php > /tmp/servidor-php.log 2>&1 < /dev/null &
+start_server() { setsid nohup php -S "$1:8000" .devcontainer/router.php > /tmp/servidor-php.log 2>&1 < /dev/null & }
+
+# Escuta em IPv6 e IPv4 ao mesmo tempo ([::]), porque o encaminhamento de porta pode chegar por qualquer um dos
+# dois. Se o ambiente não tiver IPv6, o servidor nem sobe assim; aí usa só IPv4 (0.0.0.0).
+start_server '[::]'
+sleep 1
+if ! pgrep -f "php -S \[::\]:8000" >/dev/null; then
+    start_server 0.0.0.0
+fi
 
 # Confere se o sistema responde (até 15 segundos).
 status=000
 for _ in $(seq 1 30); do
-    status=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/ 2>/dev/null || true)
+    status=$(responds 127.0.0.1)
     [ "${status}" = "200" ] && break
     sleep 0.5
 done
 
+echo "Teste interno: IPv4 ${status} | IPv6 $(responds '[::1]') (200 = funcionando; 000 no IPv6 é normal se o ambiente não tiver IPv6)"
+
 if [ "${status}" = "200" ]; then
-    echo "OK: sistema funcionando na porta 8000. Abra pela aba PORTAS (ícone de globo) e aperte F5 na página."
+    echo "OK: sistema funcionando na porta 8000."
+    if [ -n "${CODESPACE_NAME:-}" ]; then
+        echo "Endereço público: https://${CODESPACE_NAME}-8000.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/login"
+    fi
+    echo "Se o endereço público der 404, segure Ctrl e clique neste link (o Codespaces refaz o encaminhamento da porta):"
+    echo "    http://localhost:8000/login"
 else
     echo "ERRO: o sistema não respondeu (código ${status}). Últimas linhas do servidor:"
     tail -n 15 /tmp/servidor-php.log 2>/dev/null || true
