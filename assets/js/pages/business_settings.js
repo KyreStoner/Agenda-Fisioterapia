@@ -93,6 +93,11 @@ App.Pages.BusinessSettings = (function () {
             value: JSON.stringify(appointmentStatusOptions),
         });
 
+        businessSettings.push({
+            name: 'appointment_status_colors',
+            value: JSON.stringify(App.Components.AppointmentStatusOptions.getColors($appointmentStatusOptions)),
+        });
+
         return businessSettings;
     }
 
@@ -176,7 +181,11 @@ App.Pages.BusinessSettings = (function () {
         workingPlanManager.timepickers(false);
         workingPlanManager.addEventListeners();
 
-        App.Components.AppointmentStatusOptions.setOptions($appointmentStatusOptions, appointmentStatusOptions);
+        // Situações com a cor de cada uma (o servidor completa as cores que faltarem).
+        App.Components.AppointmentStatusOptions.setOptions(
+            $appointmentStatusOptions,
+            vars('appointment_status_items') || appointmentStatusOptions,
+        );
 
         $saveSettings.on('click', onSaveSettingsClick);
 

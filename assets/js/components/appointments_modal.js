@@ -238,6 +238,7 @@ App.Components.AppointmentsModal = (function () {
                             text: lang('proceed'),
                             click: (event, messageModal) => {
                                 messageModal.hide();
+                                App.Utils.AppointmentStatus?.markAsOverbooked(appointment);
                                 promptNotifyUsersAndSave(true);
                             },
                         },

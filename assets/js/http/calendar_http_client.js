@@ -349,6 +349,7 @@ App.Http.Calendar = (function () {
                                 text: lang('proceed'),
                                 click: (event, messageModal) => {
                                     messageModal.hide();
+                                    App.Utils.AppointmentStatus?.markAsOverbooked(appointment);
                                     attemptSave(true);
                                 },
                             },
@@ -365,8 +366,27 @@ App.Http.Calendar = (function () {
         attemptSave();
     }
 
+    /**
+     * Troca só a situação de um atendimento.
+     *
+     * @param {Number} appointmentId
+     * @param {String} status
+     *
+     * @return {jQuery.jqXHR}
+     */
+    function updateAppointmentStatus(appointmentId, status) {
+        const url = App.Utils.Url.siteUrl('calendar/update_appointment_status');
+
+        return $.post(url, {
+            csrf_token: vars('csrf_token'),
+            appointment_id: appointmentId,
+            status,
+        });
+    }
+
     return {
         saveAppointment,
+        updateAppointmentStatus,
         saveAppointmentWithConflictHandling,
         checkProviderConflict,
         deleteAppointment,

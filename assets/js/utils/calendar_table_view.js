@@ -876,7 +876,7 @@ App.Utils.CalendarTableView = (function () {
                     start: moment(appointment.start_datetime).toDate(),
                     end: moment(appointment.end_datetime).toDate(),
                     allDay: false,
-                    color: appointment.color,
+                    ...App.Utils.AppointmentStatus.eventColors(appointment),
                     display: 'block',
                     data: appointment,
                 };
@@ -1317,9 +1317,6 @@ App.Utils.CalendarTableView = (function () {
         const $wrapper = $('<div/>').appendTo($calendarView);
 
         App.Http.Calendar.getCalendarAppointmentsForTableView(startDate, endDate).done((response) => {
-            // Legenda das cores (components/calendar_legend.js).
-            document.dispatchEvent(new CustomEvent('calendar:appointments', {detail: response.appointments}));
-
             let currentDate = startDate;
             while (currentDate <= endDate) {
                 createDateColumn($wrapper, currentDate, response);
@@ -1560,9 +1557,6 @@ App.Utils.CalendarTableView = (function () {
                 .toDate();
 
             App.Http.Calendar.getCalendarAppointmentsForTableView(startDate, endDate).done((response) => {
-                // Legenda das cores (components/calendar_legend.js).
-                document.dispatchEvent(new CustomEvent('calendar:appointments', {detail: response.appointments}));
-
                 let currentDateIter = startDate;
                 while (currentDateIter <= endDate) {
                     $('.calendar-view .date-column').each((index, dateColumn) => {

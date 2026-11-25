@@ -18,11 +18,11 @@ done
 
 working_plan='{"monday":{"start":"08:00","end":"18:00","breaks":[{"start":"12:00","end":"13:00"}]},"tuesday":{"start":"08:00","end":"18:00","breaks":[{"start":"12:00","end":"13:00"}]},"wednesday":{"start":"08:00","end":"18:00","breaks":[{"start":"12:00","end":"13:00"}]},"thursday":{"start":"08:00","end":"18:00","breaks":[{"start":"12:00","end":"13:00"}]},"friday":{"start":"08:00","end":"18:00","breaks":[{"start":"12:00","end":"13:00"}]},"saturday":{"start":"08:00","end":"12:00","breaks":[]},"sunday":null}'
 
-appointment() { # dia hora id_servico email_paciente
-    local minutes=50 color='#7cbae8'
+appointment() { # dia hora id_servico email_paciente [situação]
+    local minutes=50 color='#7cbae8' status="${5:-Marcado}"
     [ "$3" = '@avaliacao' ] && minutes=60 color='#a8d5a2'
     echo "INSERT INTO ea_appointments (book_datetime, start_datetime, end_datetime, notes, hash, status, is_unavailability, id_users_provider, id_users_customer, id_services, color)
-          VALUES (NOW(), '$1 $2:00', DATE_ADD('$1 $2:00', INTERVAL $minutes MINUTE), '', MD5(RAND()), 'Booked', 0, @fisio,
+          VALUES (NOW(), '$1 $2:00', DATE_ADD('$1 $2:00', INTERVAL $minutes MINUTE), '', MD5(RAND()), '${status}', 0, @fisio,
                   (SELECT id FROM ea_users WHERE email = '$4'), $3, '$color');"
 }
 
@@ -71,12 +71,12 @@ JOIN (
 ) p
 WHERE r.slug = 'customer';
 SQL
-appointment "${days[0]}" 08:00 @sessao    paciente1@exemplo.com.br
-appointment "${days[0]}" 09:00 @avaliacao paciente2@exemplo.com.br
-appointment "${days[0]}" 10:00 @sessao    paciente3@exemplo.com.br
-appointment "${days[0]}" 14:00 @sessao    paciente4@exemplo.com.br
-appointment "${days[1]}" 08:00 @sessao    paciente5@exemplo.com.br
-appointment "${days[1]}" 11:00 @avaliacao paciente6@exemplo.com.br
+appointment "${days[0]}" 08:00 @sessao    paciente1@exemplo.com.br Executado
+appointment "${days[0]}" 09:00 @avaliacao paciente2@exemplo.com.br 'Em atendimento'
+appointment "${days[0]}" 10:00 @sessao    paciente3@exemplo.com.br Aguardando
+appointment "${days[0]}" 14:00 @sessao    paciente4@exemplo.com.br Confirmado
+appointment "${days[1]}" 08:00 @sessao    paciente5@exemplo.com.br Encaixado
+appointment "${days[1]}" 11:00 @avaliacao paciente6@exemplo.com.br Confirmado
 appointment "${days[1]}" 15:00 @sessao    paciente1@exemplo.com.br
 appointment "${days[2]}" 09:00 @sessao    paciente2@exemplo.com.br
 appointment "${days[2]}" 13:00 @sessao    paciente3@exemplo.com.br

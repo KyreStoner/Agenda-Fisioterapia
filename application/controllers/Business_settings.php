@@ -76,6 +76,7 @@ class Business_settings extends EA_Controller
             'business_settings' => filter_sensitive_settings($this->settings_model->get()),
             'first_weekday' => setting('first_weekday'),
             'time_format' => setting('time_format'),
+            'appointment_status_items' => appointment_status_items(),
         ]);
 
         html_vars([

@@ -20,6 +20,7 @@ class Clinical_records extends EA_Controller
 
         $this->load->model('appointments_model');
         $this->load->model('clinical_records_model');
+        $this->load->model('clinical_record_types_model');
         $this->load->model('goal_templates_model');
         $this->load->model('customers_model');
         $this->load->model('roles_model');
@@ -46,7 +47,9 @@ class Clinical_records extends EA_Controller
 
         $appointment = $this->find_appointment((int) request('appointment'), $customer_id);
 
-        $records = $this->clinical_records_model->get_by_customer($customer_id);
+        $records = $this->visible_records($customer_id);
+
+        $addable_types = $this->clinical_record_types_model->addable(session('role_slug'));
 
         $this->clinical_records_model->log_access($this->current_user(), $customer_id, null, 'view');
 
@@ -61,7 +64,9 @@ class Clinical_records extends EA_Controller
                 'assessment' => $this->clinical_records_model->form('assessment'),
                 'evolution' => $this->clinical_records_model->form('evolution'),
             ],
-            'can_add' => can('add', PRIV_CLINICAL_RECORDS),
+            'can_add' => (bool) $addable_types,
+            'addable_types' => $addable_types,
+            'editable_type_ids' => $this->editable_type_ids(),
             'catalog' => $this->clinical_records_model->catalog(),
             'goals_progress' => $this->clinical_records_model->goals_progress($records),
             'goal_labels' => $this->goal_labels($records),
@@ -83,7 +88,7 @@ class Clinical_records extends EA_Controller
             return;
         }
 
-        $records = $this->clinical_records_model->get_by_customer($customer_id);
+        $records = $this->visible_records($customer_id);
         $record_id = (int) request('record');
 
         if ($record_id) {
@@ -98,7 +103,7 @@ class Clinical_records extends EA_Controller
 
         $this->clinical_records_model->log_access($this->current_user(), $customer_id, $record_id ?: null, 'print');
 
-        $all_records = $this->clinical_records_model->get_by_customer($customer_id);
+        $all_records = $this->visible_records($customer_id);
 
         html_vars([
             'page_title' => lang('cr_report_title'),
@@ -123,9 +128,10 @@ class Clinical_records extends EA_Controller
     }
 
     /**
-     * Formulário de nova avaliação ou evolução.
+     * Formulário de novo registro de um tipo (clinical_records/create/{paciente}/{tipo}). Aceita também a ficha no
+     * lugar do tipo (.../assessment ou .../evolution, endereços de antes dos tipos): usa o primeiro tipo liberado dela.
      */
-    public function create(int $customer_id = 0, string $type = 'evolution'): void
+    public function create(int $customer_id = 0, string $type = ''): void
     {
         method('get');
 
@@ -135,11 +141,25 @@ class Clinical_records extends EA_Controller
             return;
         }
 
+        $role = session('role_slug');
+
+        $record_type = ctype_digit($type)
+            ? $this->clinical_record_types_model->find((int) $type)
+            : $this->clinical_record_types_model->first_addable_for_form($type, $role);
+
+        if (!$record_type || !$this->clinical_record_types_model->can_add($record_type['id'], $role)) {
+            abort(403, 'Forbidden');
+
+            return;
+        }
+
         $appointment = $this->find_appointment((int) request('appointment'), $customer_id);
 
         $this->render_form($customer, [
             'id' => null,
-            'type' => $type,
+            'type' => $record_type['form'],
+            'id_clinical_record_types' => $record_type['id'],
+            'type_name' => $record_type['name'],
             'id_appointments' => $appointment['id'] ?? null,
             'record_date' => $appointment['start_datetime'] ?? date('Y-m-d H:i:s'),
             'content' => [],
@@ -186,11 +206,23 @@ class Clinical_records extends EA_Controller
             $type = $record['type'];
         } else {
             $customer_id = (int) request('id_users_customer');
-            $type = (string) request('type');
 
             if (!$this->authorize($customer_id, 'add')) {
                 return;
             }
+
+            $record_type = $this->clinical_record_types_model->find((int) request('record_type'));
+
+            if (
+                !$record_type ||
+                !$this->clinical_record_types_model->can_add($record_type['id'], session('role_slug'))
+            ) {
+                abort(403, 'Forbidden');
+
+                return;
+            }
+
+            $type = $record_type['form'];
         }
 
         try {
@@ -224,6 +256,7 @@ class Clinical_records extends EA_Controller
                 $this->clinical_records_model->create(
                     [
                         'type' => $type,
+                        'id_clinical_record_types' => $record_type['id'],
                         'id_users_customer' => $customer_id,
                         'id_appointments' => $appointment['id'] ?? null,
                         'record_date' => $record_date,
@@ -232,6 +265,10 @@ class Clinical_records extends EA_Controller
                     ],
                     $this->current_user(),
                 );
+
+                if ($appointment) {
+                    $this->mark_appointment_completed((int) $appointment['id']);
+                }
             }
 
             $this->session->set_flashdata('clinical_success', lang('clinical_record_saved'));
@@ -246,6 +283,8 @@ class Clinical_records extends EA_Controller
                 [
                     'id' => $record_id ?: null,
                     'type' => $type,
+                    'id_clinical_record_types' => $record_id ? $record['id_clinical_record_types'] : $record_type['id'],
+                    'type_name' => $record_id ? $record['type_name'] : $record_type['name'],
                     'id_appointments' => (int) request('id_appointments') ?: null,
                     'record_date' => $record_date ?: date('Y-m-d H:i:s'),
                     'content' => $input,
@@ -314,7 +353,10 @@ class Clinical_records extends EA_Controller
             return null;
         }
 
-        if ($record['id_users_author'] !== (int) session('user_id')) {
+        if (
+            $record['id_users_author'] !== (int) session('user_id') ||
+            !in_array($this->clinical_record_types_model->type_id_for($record), $this->editable_type_ids(), true)
+        ) {
             abort(403, 'Forbidden');
 
             return null;
@@ -331,8 +373,10 @@ class Clinical_records extends EA_Controller
 
         $catalog = $this->clinical_records_model->catalog();
 
+        $type_name = $record['type_name'] ?? '' ?: lang('cr_' . $type);
+
         $this->render('pages/clinical_record_form', [
-            'page_title' => lang($record['id'] ? 'cr_edit_' . $type : 'cr_new_' . $type),
+            'page_title' => lang($record['id'] ? 'cr_edit_record' : 'cr_new_record') . ': ' . $type_name,
             'customer' => $customer,
             'record' => $record,
             'form' => $this->clinical_records_model->form($type),
@@ -350,11 +394,52 @@ class Clinical_records extends EA_Controller
     private function goals_progress(int $customer_id, int $exclude_record_id = 0): array
     {
         $records = array_filter(
-            $this->clinical_records_model->get_by_customer($customer_id),
+            $this->visible_records($customer_id),
             fn($record) => $record['id'] !== $exclude_record_id,
         );
 
         return $this->clinical_records_model->goals_progress(array_values($records));
+    }
+
+    /**
+     * Registros do paciente que o perfil do usuário pode ver (Configurações → Prontuário).
+     */
+    private function visible_records(int $customer_id): array
+    {
+        $viewable = $this->clinical_record_types_model->viewable_ids(session('role_slug'));
+
+        $records = [];
+
+        foreach ($this->clinical_records_model->get_by_customer($customer_id) as $record) {
+            // Registro antigo sem tipo fica com o primeiro tipo da mesma ficha.
+            $record['id_clinical_record_types'] = $this->clinical_record_types_model->type_id_for($record);
+
+            if (in_array($record['id_clinical_record_types'], $viewable, true)) {
+                $records[] = $record;
+            }
+        }
+
+        return $records;
+    }
+
+    /**
+     * Tipos em que o perfil do usuário pode adicionar e, por isso, editar os próprios registros (inclui desativados).
+     *
+     * @return int[]
+     */
+    private function editable_type_ids(): array
+    {
+        $role = session('role_slug');
+
+        return array_values(
+            array_map(
+                fn($type) => $type['id'],
+                array_filter(
+                    $this->clinical_record_types_model->get_all(),
+                    fn($type) => !empty($type['permissions'][$role]['add']),
+                ),
+            ),
+        );
     }
 
     private function render(string $view, array $vars): void
@@ -373,6 +458,43 @@ class Clinical_records extends EA_Controller
         );
 
         $this->load->view($view);
+    }
+
+    /**
+     * Registro novo feito a partir da consulta = atendimento terminado: a consulta passa para "Executado" (situação
+     * "completed" de application/config/appointment_statuses.php), a não ser que já esteja numa situação que fica
+     * (Executado, Faltou, Cancelado) ou que a situação não exista na lista. Só o profissional da consulta (ou quem pode
+     * mexer na agenda dele) muda a situação.
+     */
+    private function mark_appointment_completed(int $appointment_id): void
+    {
+        $completed = appointment_status_automation('completed');
+
+        if (!$completed) {
+            return;
+        }
+
+        try {
+            $appointment = $this->appointments_model->find($appointment_id);
+
+            if (
+                appointment_status_keeps_on_completion($appointment['status'] ?? null) ||
+                !can('edit', PRIV_APPOINTMENTS) ||
+                !can_manage_provider((int) $appointment['id_users_provider'])
+            ) {
+                return;
+            }
+
+            $appointment['status'] = $completed;
+
+            $this->appointments_model->save($appointment);
+        } catch (Throwable $e) {
+            // O registro já foi salvo; a situação da consulta é só um complemento.
+            log_message(
+                'error',
+                'Could not mark appointment ' . $appointment_id . ' as completed: ' . $e->getMessage(),
+            );
+        }
     }
 
     /**

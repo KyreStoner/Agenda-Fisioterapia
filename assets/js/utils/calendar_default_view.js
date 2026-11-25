@@ -888,9 +888,6 @@ App.Utils.CalendarDefaultView = (function () {
                 }
 
                 fullCalendar.addEventSource(events);
-
-                // Legenda das cores (components/calendar_legend.js).
-                document.dispatchEvent(new CustomEvent('calendar:appointments', {detail: response.appointments}));
             })
             .always(() => {
                 $('#loading').css('visibility', '');
@@ -922,7 +919,7 @@ App.Utils.CalendarDefaultView = (function () {
                 start: moment(appointment.start_datetime).toDate(),
                 end: moment(appointment.end_datetime).toDate(),
                 allDay: false,
-                color: appointment.color,
+                ...App.Utils.AppointmentStatus.eventColors(appointment),
                 data: appointment,
                 display: 'block',
             };

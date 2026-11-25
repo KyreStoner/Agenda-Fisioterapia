@@ -508,6 +508,7 @@ class Clinical_records_model extends EA_Model
 
         $this->db->insert('clinical_records', [
             'type' => $record['type'],
+            'id_clinical_record_types' => $record['id_clinical_record_types'] ?? null,
             'id_users_customer' => $record['id_users_customer'],
             'id_users_author' => $author['id'],
             'author_name' => $author['name'],
@@ -563,7 +564,18 @@ class Clinical_records_model extends EA_Model
 
     public function find(int $record_id): array
     {
-        $record = $this->db->get_where('clinical_records', ['id' => $record_id])->row_array();
+        $records_table = $this->db->dbprefix('clinical_records');
+        $types_table = $this->db->dbprefix('clinical_record_types');
+
+        $record = $this->db
+            ->query(
+                "SELECT r.*, t.name AS type_name
+                 FROM `$records_table` r
+                 LEFT JOIN `$types_table` t ON t.id = r.id_clinical_record_types
+                 WHERE r.id = ?",
+                [$record_id],
+            )
+            ->row_array();
 
         if (!$record) {
             throw new InvalidArgumentException(lang('clinical_record_not_found'));
@@ -579,11 +591,14 @@ class Clinical_records_model extends EA_Model
     {
         $records_table = $this->db->dbprefix('clinical_records');
         $versions_table = $this->db->dbprefix('clinical_record_versions');
+        $types_table = $this->db->dbprefix('clinical_record_types');
 
         $records = $this->db
             ->query(
-                "SELECT r.*, (SELECT COUNT(*) FROM `$versions_table` v WHERE v.id_clinical_records = r.id) AS versions_count
+                "SELECT r.*, t.name AS type_name,
+                        (SELECT COUNT(*) FROM `$versions_table` v WHERE v.id_clinical_records = r.id) AS versions_count
                  FROM `$records_table` r
+                 LEFT JOIN `$types_table` t ON t.id = r.id_clinical_record_types
                  WHERE r.id_users_customer = ?
                  ORDER BY r.record_date DESC, r.id DESC",
                 [$customer_id],

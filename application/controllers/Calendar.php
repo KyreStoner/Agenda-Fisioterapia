@@ -252,6 +252,8 @@ class Calendar extends EA_Controller
             'customers' => $customers,
             'default_language' => setting('default_language'),
             'default_timezone' => setting('default_timezone'),
+            'appointment_status_colors' => appointment_status_colors(),
+            'appointment_status_overbooked' => appointment_status_automation('overbooked'),
         ]);
 
         html_vars([
@@ -267,6 +269,7 @@ class Calendar extends EA_Controller
             'available_services' => $available_services,
             'secretary_providers' => $secretary_providers,
             'appointment_status_options' => json_decode($appointment_status_options, true) ?? [],
+            'appointment_status_items' => appointment_status_items(),
             'require_first_name' => setting('require_first_name'),
             'require_last_name' => setting('require_last_name'),
             'require_email' => setting('require_email'),
@@ -500,6 +503,55 @@ class Calendar extends EA_Controller
     {
         if (!can_manage_provider($provider_id)) {
             abort(403);
+        }
+    }
+
+    /**
+     * Troca só a situação de um atendimento (lista da janela do atendimento na agenda).
+     *
+     * Mesmas checagens do salvamento: permissão de editar atendimentos, alcance do profissional (o profissional só mexe
+     * nos dele e a recepcionista nos dos profissionais liberados para ela) e situação que exista na lista. Não manda
+     * e-mail.
+     */
+    public function update_appointment_status(): void
+    {
+        try {
+            method('post');
+
+            check('appointment_id', 'numeric');
+            check('status', 'string');
+
+            if (cannot('edit', PRIV_APPOINTMENTS)) {
+                throw new RuntimeException('You do not have the required permissions for this task.');
+            }
+
+            $appointment_id = (int) request('appointment_id');
+
+            $status = (string) request('status');
+
+            authorize_event_write($appointment_id, null);
+
+            if (!in_array($status, appointment_status_options(), true)) {
+                throw new InvalidArgumentException(lang('appointment_status_invalid'));
+            }
+
+            $appointment = $this->appointments_model->find($appointment_id);
+
+            if (!empty($appointment['is_unavailability'])) {
+                throw new InvalidArgumentException(lang('appointment_status_invalid'));
+            }
+
+            $appointment['status'] = $status;
+
+            $this->appointments_model->save($appointment);
+
+            json_response([
+                'success' => true,
+                'status' => $status,
+                'color' => appointment_status_colors()[$status] ?? null,
+            ]);
+        } catch (Throwable $e) {
+            json_exception($e);
         }
     }
 

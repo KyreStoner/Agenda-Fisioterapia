@@ -283,7 +283,7 @@ App.Utils.CalendarEventPopover = (function () {
                 ...createPopoverRow('start', formatDateTime(info.event.start)),
                 ...createPopoverRow('end', formatDateTime(info.event.end)),
                 ...createPopoverRow('timezone', vars('timezones')[provider.timezone]),
-                ...createPopoverRow('status', data.status || '-'),
+                ...renderStatusRow(info),
                 ...createPopoverRow('service', data.service.name),
                 $('<strong/>', {class: 'd-inline-block me-2', text: lang('provider')}),
                 renderMapIcon(provider),
@@ -309,6 +309,69 @@ App.Utils.CalendarEventPopover = (function () {
                 renderClinicalRecordButton(data),
             ],
         });
+    }
+
+    /**
+     * Linha "Situação": quem pode editar atendimentos troca a situação ali mesmo, sem abrir o formulário. A cor do
+     * atendimento na agenda muda na hora (App.Utils.AppointmentStatus).
+     *
+     * @param {Object} info - FullCalendar event info.
+     *
+     * @return {Array} Elementos da linha.
+     */
+    function renderStatusRow(info) {
+        const data = info.event.extendedProps.data;
+        const statuses = Object.keys(vars('appointment_status_colors') || {});
+        const privileges = vars('privileges') || {};
+
+        if (!privileges.appointments || !privileges.appointments.edit || !statuses.length || !data.id) {
+            return createPopoverRow('status', data.status || '-');
+        }
+
+        // Situação antiga, que não está mais na lista: continua aparecendo para não ser trocada sem querer.
+        if (data.status && !statuses.includes(data.status)) {
+            statuses.unshift(data.status);
+        }
+
+        const $select = $('<select/>', {
+            class: 'form-select form-select-sm d-inline-block w-auto mb-1 appointment-status-select',
+            'aria-label': lang('status'),
+        });
+
+        statuses.forEach((status) => {
+            $('<option/>', {value: status, text: status, selected: status === data.status}).appendTo($select);
+        });
+
+        let currentStatus = data.status;
+
+        $select.on('change', () => {
+            const status = $select.val();
+
+            $select.prop('disabled', true);
+
+            App.Http.Calendar.updateAppointmentStatus(data.id, status)
+                .done(() => {
+                    currentStatus = status;
+
+                    const updated = {...info.event.extendedProps.data, status};
+
+                    info.event.setExtendedProp('data', updated);
+                    info.event.setProp(
+                        'backgroundColor',
+                        App.Utils.AppointmentStatus.eventColors(updated).backgroundColor,
+                    );
+
+                    App.Layouts.Backend.displayNotification(lang('appointment_status_updated'));
+                })
+                .fail(() => {
+                    $select.val(currentStatus);
+                })
+                .always(() => {
+                    $select.prop('disabled', false);
+                });
+        });
+
+        return [$('<strong/>', {class: 'd-inline-block me-2', text: lang('status')}), $select, $('<br/>')];
     }
 
     /**

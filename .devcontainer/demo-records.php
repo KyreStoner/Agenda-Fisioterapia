@@ -286,8 +286,11 @@ if (!$db->query('SELECT 1 FROM ea_goal_templates LIMIT 1')->num_rows) {
 }
 
 $insert_record = $db->prepare(
-    'INSERT INTO ea_clinical_records (type, id_users_customer, id_users_author, author_name, id_appointments, record_date,
-        pain_scale, content, create_datetime, update_datetime) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)',
+    // Cada registro fica com o primeiro tipo da ficha dele (Avaliação inicial / Evolução de seguimento, migração 078).
+    'INSERT INTO ea_clinical_records (type, id_clinical_record_types, id_users_customer, id_users_author, author_name,
+        id_appointments, record_date, pain_scale, content, create_datetime, update_datetime)
+     VALUES (?, (SELECT t.id FROM ea_clinical_record_types t WHERE t.form = ? ORDER BY t.sort_order, t.id LIMIT 1),
+        ?, ?, ?, NULL, ?, ?, ?, ?, ?)',
 );
 $insert_log = $db->prepare(
     "INSERT INTO ea_clinical_access_log (id_users, user_name, id_users_customer, id_clinical_records, action, ip_address,
@@ -323,7 +326,8 @@ foreach ($patients as $email => $data) {
         $created_at = $entry['date'];
 
         $insert_record->bind_param(
-            'siississs',
+            'ssiississs',
+            $entry['type'],
             $entry['type'],
             $patient_id,
             $provider['id'],

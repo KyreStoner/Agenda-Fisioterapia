@@ -6,8 +6,8 @@
 /**
  * Prontuário do paciente (linha do tempo de avaliações e evoluções).
  *
- * Variáveis (html_vars): customer, appointment, records, versions, access_log, forms, can_add, current_user_id,
- * success_message.
+ * Variáveis (html_vars): customer, appointment, records (só os tipos que o perfil vê), versions, access_log, forms,
+ * can_add, addable_types (tipos em que o perfil pode adicionar), editable_type_ids, current_user_id, success_message.
  */
 $customer = vars('customer');
 $appointment = vars('appointment');
@@ -81,15 +81,16 @@ $render_content = function (array $form, array $content) use ($catalog): void {
     <?php endif; ?>
 
     <?php if (vars('can_add')): ?>
-        <div class="d-grid d-sm-flex gap-2 mb-4">
-            <a class="btn <?= $has_assessment ? 'btn-outline-primary' : 'btn-primary' ?>"
-               href="<?= site_url('clinical_records/create/' . $customer_id . '/assessment' . $query) ?>">
-                <i class="fas fa-clipboard-list me-2"></i><?= lang('cr_new_assessment') ?>
-            </a>
-            <a class="btn <?= $has_assessment ? 'btn-primary' : 'btn-outline-primary' ?>"
-               href="<?= site_url('clinical_records/create/' . $customer_id . '/evolution' . $query) ?>">
-                <i class="fas fa-plus-square me-2"></i><?= lang('cr_new_evolution') ?>
-            </a>
+        <?php // Um botão por tipo liberado; o destaque vai para a avaliação enquanto o paciente não tem uma. ?>
+        <div class="d-grid d-sm-flex flex-wrap gap-2 mb-4">
+            <?php foreach (vars('addable_types') as $record_type): ?>
+                <?php $is_assessment_form = $record_type['form'] === 'assessment'; ?>
+                <?php $highlight = $is_assessment_form ? !$has_assessment : $has_assessment; ?>
+                <a class="btn <?= $highlight ? 'btn-primary' : 'btn-outline-primary' ?>"
+                   href="<?= site_url('clinical_records/create/' . $customer_id . '/' . $record_type['id'] . $query) ?>">
+                    <i class="fas <?= $is_assessment_form ? 'fa-clipboard-list' : 'fa-plus-square' ?> me-2"></i><?= e($record_type['name']) ?>
+                </a>
+            <?php endforeach; ?>
         </div>
     <?php else: ?>
         <div class="alert alert-light border small py-2 mb-4">
@@ -164,7 +165,7 @@ $render_content = function (array $form, array $content) use ($catalog): void {
             <details <?= $index === 0 || $is_assessment ? 'open' : '' ?>>
                 <summary class="card-header bg-transparent d-flex flex-wrap align-items-center gap-2" style="cursor: pointer;">
                     <span class="badge <?= $is_assessment ? 'text-bg-primary' : 'text-bg-secondary' ?>">
-                        <?= lang('cr_' . $record['type']) ?>
+                        <?= e($record['type_name'] ?: lang('cr_' . $record['type'])) ?>
                     </span>
                     <span class="fw-semibold"><?= $datetime($record['record_date']) ?></span>
                     <?php if ($record['pain_scale'] !== null): ?>
@@ -188,7 +189,10 @@ $render_content = function (array $form, array $content) use ($catalog): void {
                                href="<?= site_url('clinical_records/report/' . $customer_id . '?record=' . $record['id']) ?>">
                                 <i class="fas fa-print me-1"></i><?= lang('cr_print') ?>
                             </a>
-                            <?php if ($record['id_users_author'] === vars('current_user_id')): ?>
+                            <?php if (
+                                $record['id_users_author'] === vars('current_user_id') &&
+                                in_array((int) $record['id_clinical_record_types'], vars('editable_type_ids'), true)
+                            ): ?>
                                 <a class="btn btn-sm btn-outline-secondary"
                                    href="<?= site_url('clinical_records/edit/' . $record['id']) ?>">
                                     <i class="fas fa-edit me-1"></i><?= lang('edit') ?>

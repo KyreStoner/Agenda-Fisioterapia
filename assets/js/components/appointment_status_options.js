@@ -15,25 +15,49 @@
  * This module implements the appointment status options.
  */
 App.Components.AppointmentStatusOptions = (function () {
+    const DEFAULT_COLOR = '#7cbae8';
+
     /**
      * Render an appointment status option.
      *
-     * @param {String} [appointmentStatusOption]
+     * Cada situação tem nome e cor (a cor do fundo do atendimento na agenda). Montado com jQuery para o nome nunca ser
+     * interpretado como HTML.
+     *
+     * @param {String|Object} [appointmentStatusOption] Nome, ou {name, color}.
      *
      * @return {jQuery} Returns a jQuery selector with the list group item markup.
      */
     function renderListGroupItem(appointmentStatusOption = '') {
-        return $(`
-            <li class="list-group-item d-flex justify-content-between align-items-center p-0 border-0 mb-3 appointment-status-option">
-                <label class="w-100 me-2">
-                    <input class="form-control" value="${appointmentStatusOption}">
-                </label>
-    
-                <button type="button" class="btn btn-outline-danger delete-appointment-status-option">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </li>
-        `);
+        const option =
+            typeof appointmentStatusOption === 'object' && appointmentStatusOption !== null
+                ? appointmentStatusOption
+                : {name: appointmentStatusOption, color: DEFAULT_COLOR};
+
+        return $('<li/>', {
+            class: 'list-group-item d-flex justify-content-between align-items-center gap-2 p-0 border-0 mb-3 appointment-status-option',
+            html: [
+                $('<input/>', {
+                    type: 'color',
+                    class: 'form-control form-control-color flex-shrink-0 appointment-status-option-color',
+                    value: option.color || DEFAULT_COLOR,
+                    title: lang('color'),
+                    'aria-label': lang('color'),
+                }),
+                $('<label/>', {
+                    class: 'flex-grow-1',
+                    html: $('<input/>', {
+                        type: 'text',
+                        class: 'form-control appointment-status-option-name',
+                        value: option.name || '',
+                    }),
+                }),
+                $('<button/>', {
+                    type: 'button',
+                    class: 'btn btn-outline-danger delete-appointment-status-option',
+                    html: $('<i/>', {class: 'fas fa-trash'}),
+                }),
+            ],
+        });
     }
 
     /**
@@ -76,18 +100,43 @@ App.Components.AppointmentStatusOptions = (function () {
 
         $listGroup.find('li').each((index, listGroupItemEl) => {
             const $listGroupItem = $(listGroupItemEl);
-            const appointmentStatusOption = $listGroupItem.find('input:text').val();
-            appointmentStatusOptions.push(appointmentStatusOption);
+            const appointmentStatusOption = $listGroupItem.find('.appointment-status-option-name').val().trim();
+
+            if (appointmentStatusOption) {
+                appointmentStatusOptions.push(appointmentStatusOption);
+            }
         });
 
         return appointmentStatusOptions;
     }
 
     /**
+     * Cor de cada situação.
+     *
+     * @param {jQuery} $target Container element ".appointment-status-options" selector.
+     *
+     * @return {Object} Nome → cor.
+     */
+    function getColors($target) {
+        const colors = {};
+
+        $target.find('.list-group li').each((index, listGroupItemEl) => {
+            const $listGroupItem = $(listGroupItemEl);
+            const name = $listGroupItem.find('.appointment-status-option-name').val().trim();
+
+            if (name) {
+                colors[name] = $listGroupItem.find('.appointment-status-option-color').val();
+            }
+        });
+
+        return colors;
+    }
+
+    /**
      * Set target options.
      *
      * @param {jQuery} $target Container element ".status-list" selector.
-     * @param {String[]} appointmentStatusOptions Appointment status options.
+     * @param {Array} appointmentStatusOptions Appointment status options (nomes, ou {name, color}).
      */
     function setOptions($target, appointmentStatusOptions) {
         if (!$target.length || !appointmentStatusOptions || !appointmentStatusOptions.length) {
@@ -119,6 +168,7 @@ App.Components.AppointmentStatusOptions = (function () {
 
     return {
         getOptions,
+        getColors,
         setOptions,
     };
 })();

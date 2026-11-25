@@ -23,7 +23,7 @@ $address = implode(', ', array_filter([
 $authors = array_values(array_unique(array_column($records, 'author_name')));
 
 if (vars('single')) {
-    $title = lang($records[0]['type'] === 'assessment' ? 'cr_report_assessment' : 'cr_report_evolution');
+    $title = $records[0]['type_name'] ?: lang($records[0]['type'] === 'assessment' ? 'cr_report_assessment' : 'cr_report_evolution');
 } else {
     $title = lang('cr_report_title');
 }
@@ -138,7 +138,7 @@ if (vars('single')) {
     <?php foreach ($records as $record): ?>
         <article class="record record-<?= $record['type'] ?>">
             <h2>
-                <?= lang('cr_' . $record['type']) ?> · <?= $datetime($record['record_date']) ?>
+                <?= e($record['type_name'] ?: lang('cr_' . $record['type'])) ?> · <?= $datetime($record['record_date']) ?>
                 <?php if ($record['pain_scale'] !== null): ?>
                     <span class="badge text-bg-light border fw-normal"><?= lang('cr_pain') ?> <?= (int) $record['pain_scale'] ?>/10</span>
                 <?php endif; ?>

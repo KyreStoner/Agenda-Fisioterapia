@@ -30,7 +30,7 @@ $back_url = site_url('clinical_records/patient/' . (int) $customer['id']);
     <form method="post" action="<?= site_url('clinical_records/save') ?>">
         <input type="hidden" name="csrf_token" value="<?= e($csrf_hash) ?>">
         <input type="hidden" name="id" value="<?= (int) ($record['id'] ?? 0) ?: '' ?>">
-        <input type="hidden" name="type" value="<?= e($record['type']) ?>">
+        <input type="hidden" name="record_type" value="<?= (int) ($record['id_clinical_record_types'] ?? 0) ?>">
         <input type="hidden" name="id_users_customer" value="<?= (int) $customer['id'] ?>">
         <input type="hidden" name="id_appointments" value="<?= (int) ($record['id_appointments'] ?? 0) ?: '' ?>">
 

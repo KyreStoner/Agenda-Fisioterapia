@@ -123,3 +123,4 @@ function &get_instance(): object
 
 require_once APPPATH . 'helpers/permission_helper.php';
 require_once APPPATH . 'helpers/palette_helper.php';
+require_once APPPATH . 'helpers/appointment_status_helper.php';
