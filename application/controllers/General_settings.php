@@ -67,6 +67,8 @@ class General_settings extends EA_Controller
             'role_slug' => $role_slug,
             'timezones' => $this->timezones->to_array(),
             'general_settings' => filter_sensitive_settings($this->settings_model->get()),
+            'color_palette' => system_color_palette_id(),
+            'default_color' => color_palette_options()[COLOR_PALETTE_ORIGINAL]['primary'],
         ]);
 
         html_vars([
@@ -75,6 +77,10 @@ class General_settings extends EA_Controller
             'user_display_name' => $this->accounts->get_user_display_name($user_id),
             'grouped_timezones' => $this->timezones->to_grouped_array(),
             'available_themes' => $available_themes,
+            'color_palettes' => color_palette_options(),
+            'custom_color_palette' => company_color_is_set()
+                ? custom_color_palette((string) setting('company_color'))
+                : ['swatches' => ['#ced4da', '#adb5bd', '#6c757d']],
         ]);
 
         $this->load->view('pages/general_settings');
@@ -90,6 +96,7 @@ class General_settings extends EA_Controller
         'company_link',
         'company_logo',
         'company_color',
+        'color_palette',
         'company_working_plan',
         'book_advance_timeout',
         'default_timezone',
@@ -126,6 +133,18 @@ class General_settings extends EA_Controller
             // Validate settings is an array
             if (!is_array($settings)) {
                 throw new InvalidArgumentException('Invalid settings data format.');
+            }
+
+            // Só aceita paletas que existem (application/config/color_palettes.php) ou a cor personalizada. Confere
+            // antes de gravar, para não salvar as outras configurações pela metade.
+            foreach ($settings as $setting) {
+                if (
+                    ($setting['name'] ?? null) === 'color_palette' &&
+                    ($setting['value'] ?? '') !== COLOR_PALETTE_CUSTOM &&
+                    !find_color_palette((string) ($setting['value'] ?? ''))
+                ) {
+                    throw new InvalidArgumentException(lang('color_palette_invalid'));
+                }
             }
 
             foreach ($settings as $setting) {

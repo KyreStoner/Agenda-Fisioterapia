@@ -107,6 +107,26 @@
                                 </div>
 
                                 <div class="mb-3">
+                                    <div class="form-label" id="color-palette-label">
+                                        <?= lang('color_palette') ?>
+                                    </div>
+
+                                    <?php component('color_palette_picker', [
+                                        'input_id' => 'color-palette',
+                                        'data_field' => 'color_palette',
+                                        'label_id' => 'color-palette-label',
+                                        'palettes' => vars('color_palettes'),
+                                        'custom_palette' => vars('custom_color_palette'),
+                                    ]); ?>
+
+                                    <div class="form-text text-muted">
+                                        <small>
+                                            <?= lang('color_palette_hint') ?>
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3" id="company-color-group" hidden>
                                     <label class="form-label" for="company-color">
                                         <?= lang('company_color') ?>
                                     </label>
@@ -116,16 +136,8 @@
 
                                     <div class="form-text text-muted">
                                         <small>
-                                            <?= lang('company_color_hint') ?>
+                                            <?= lang('color_palette_custom_hint') ?>
                                         </small>
-                                    </div>
-
-                                    <div class="d-flex justify-content-center">
-                                        <button type="button" class="btn btn-danger btn-sm my-3"
-                                                id="reset-company-color" hidden>
-                                            <i class="fas fa-undo-alt me-2"></i>
-                                            <?= lang('reset') ?>
-                                        </button>
                                     </div>
                                 </div>
 
@@ -256,6 +268,7 @@
 
 <?php section('scripts'); ?>
 
+<script src="<?= asset_url('assets/js/components/color_palette_picker.js') ?>"></script>
 <script src="<?= asset_url('assets/js/http/general_settings_http_client.js') ?>"></script>
 <script src="<?= asset_url('assets/js/pages/general_settings.js') ?>"></script>
 

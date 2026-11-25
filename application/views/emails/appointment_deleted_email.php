@@ -11,6 +11,9 @@
  * @var string $reason
  */
 
+// Cor principal da paleta da clínica (Configurações → Geral → Paleta de cores).
+$email_color = clinic_color();
+
 $customer_first_name = trim((string) ($customer['first_name'] ?? ''));
 $customer_last_name = trim((string) ($customer['last_name'] ?? ''));
 $customer_full_name = trim($customer_first_name . ' ' . $customer_last_name);
@@ -177,7 +180,7 @@ $customer_address = trim((string) ($customer['address'] ?? ''));
         }
 
         a {
-            color: #3498db;
+            color: <?= $email_color ?>;
             text-decoration: underline;
         }
 
@@ -205,10 +208,10 @@ $customer_address = trim((string) ($customer['address'] ?? ''));
 
         .btn a {
             background-color: #ffffff;
-            border: solid 1px #3498db;
+            border: solid 1px <?= $email_color ?>;
             border-radius: 5px;
             box-sizing: border-box;
-            color: #3498db;
+            color: <?= $email_color ?>;
             cursor: pointer;
             display: inline-block;
             font-size: 14px;
@@ -219,12 +222,12 @@ $customer_address = trim((string) ($customer['address'] ?? ''));
         }
 
         .btn-primary table td {
-            background-color: #3498db;
+            background-color: <?= $email_color ?>;
         }
 
         .btn-primary a {
-            background-color: #3498db;
-            border-color: #3498db;
+            background-color: <?= $email_color ?>;
+            border-color: <?= $email_color ?>;
             color: #ffffff;
         }
 

@@ -1,10 +1,11 @@
+<?php $palette = active_color_palette(); ?>
 <!doctype html>
 <html lang="<?= config('language_code') ?>">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <meta name="theme-color" content="#35A768">
+    <meta name="theme-color" content="<?= e(palette_theme_color($palette)) ?>">
     <meta name="google" content="notranslate">
 
     <?php slot('meta'); ?>
@@ -23,7 +24,7 @@
     <link rel="stylesheet" type="text/css" href="<?= asset_url('assets/css/general.css') ?>">
     <link rel="stylesheet" type="text/css" href="<?= asset_url('assets/css/backend.css') ?>">
 
-    <?php component('company_color_style', ['company_color' => setting('company_color')]); ?>
+    <?php component('palette_style', ['palette' => $palette]); ?>
 
     <?php slot('styles'); ?>
 </head>

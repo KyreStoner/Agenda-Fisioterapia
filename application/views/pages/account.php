@@ -182,6 +182,24 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <h5 class="fw-light border-top pt-4 mb-1" id="color-palette-label">
+                                    <?= lang('color_palette_user') ?>
+                                </h5>
+                                <div class="form-text text-muted mt-0 mb-3">
+                                    <small><?= lang('color_palette_user_hint') ?></small>
+                                </div>
+
+                                <?php component('color_palette_picker', [
+                                    'input_id' => 'color-palette',
+                                    'label_id' => 'color-palette-label',
+                                    'palettes' => vars('color_palettes'),
+                                    'clinic_palette' => vars('clinic_color_palette'),
+                                ]); ?>
+                            </div>
+                        </div>
                     </fieldset>
                 </form>
             </div>
@@ -194,6 +212,7 @@
 
 <?php section('scripts'); ?>
 
+<script src="<?= asset_url('assets/js/components/color_palette_picker.js') ?>"></script>
 <script src="<?= asset_url('assets/js/http/account_http_client.js') ?>"></script>
 <script src="<?= asset_url('assets/js/pages/account.js') ?>"></script>
 

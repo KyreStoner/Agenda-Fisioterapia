@@ -632,3 +632,63 @@ body .modal.full-screen .modal-push {
         min-width: 0;
     }
 }
+
+/* Escolha da paleta de cores (Configurações → Geral e Conta) */
+.color-palette-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--bs-body-bg);
+    border: 2px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    transition:
+        border-color 0.15s ease-in-out,
+        box-shadow 0.15s ease-in-out;
+}
+
+.color-palette-card:hover {
+    border-color: rgba(var(--bs-primary-rgb), 0.5);
+}
+
+.color-palette-swatches {
+    display: flex;
+    height: 48px;
+}
+
+.color-palette-swatches > span {
+    flex: 1 1 0;
+}
+
+.color-palette-name {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-height: 48px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    min-width: 0;
+}
+
+.color-palette-check {
+    flex: 0 0 auto;
+    color: var(--bs-primary);
+    visibility: hidden;
+}
+
+.btn-check:checked + .color-palette-card {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.2);
+}
+
+.btn-check:checked + .color-palette-card .color-palette-check {
+    visibility: visible;
+}
+
+.btn-check:focus-visible + .color-palette-card {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}

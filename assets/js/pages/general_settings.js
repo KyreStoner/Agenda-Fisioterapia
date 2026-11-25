@@ -20,7 +20,10 @@ App.Pages.GeneralSettings = (function () {
     const $companyLogoPreview = $('#company-logo-preview');
     const $removeCompanyLogo = $('#remove-company-logo');
     const $companyColor = $('#company-color');
-    const $resetCompanyColor = $('#reset-company-color');
+    const $companyColorGroup = $('#company-color-group');
+    const $colorPalette = $('#color-palette');
+    const $colorPalettePicker = $('#general-settings .color-palette-picker');
+    let companyColorPreviewTimeout = null;
     let companyLogoBase64 = '';
 
     /**
@@ -66,16 +69,17 @@ App.Pages.GeneralSettings = (function () {
                 return;
             }
 
-            if (generalSetting.name === 'company_color' && generalSetting.value !== '#ffffff') {
-                $resetCompanyColor.prop('hidden', false);
-            }
-
             const $field = $('[data-field="' + generalSetting.name + '"]');
 
             $field.is(':checkbox')
                 ? $field.prop('checked', Boolean(Number(generalSetting.value)))
                 : $field.val(generalSetting.value);
         });
+
+        // Paleta já conferida pelo servidor (uma paleta apagada do arquivo de configuração volta para o verde).
+        $colorPalette.val(vars('color_palette'));
+        App.Components.ColorPalettePicker.sync($colorPalettePicker);
+        $companyColorGroup.prop('hidden', $colorPalette.val() !== 'custom');
     }
 
     function serialize() {
@@ -150,17 +154,52 @@ App.Pages.GeneralSettings = (function () {
     }
 
     /**
-     * Toggle the reset company color button.
+     * Paleta escolhida: mostra a prévia na página e, na "Personalizada", o campo da cor.
      */
-    function onCompanyColorChange() {
-        $resetCompanyColor.prop('hidden', $companyColor.val() === '#ffffff');
+    function onColorPaletteChange() {
+        const palette = $colorPalette.val();
+
+        const isCustom = palette === 'custom';
+
+        // "#ffffff" é o valor de fábrica (= nenhuma cor): começa a cor personalizada pelo verde original.
+        if (isCustom && (!$companyColor.val() || $companyColor.val().toLowerCase() === '#ffffff')) {
+            $companyColor.val(vars('default_color'));
+        }
+
+        $companyColorGroup.prop('hidden', !isCustom);
+
+        const request = App.Components.ColorPalettePicker.preview(palette, isCustom ? $companyColor.val() : '');
+
+        if (isCustom) {
+            request.done(updateCustomSwatches);
+        }
     }
 
     /**
-     * Set the company color value to "#ffffff" which is the default one.
+     * Mostra no cartão "Personalizada" os tons da cor escolhida.
+     *
+     * @param {Object} response Resposta de color_palettes/preview.
      */
-    function onResetCompanyColorClick() {
-        $companyColor.val('#ffffff');
+    function updateCustomSwatches(response) {
+        $('#color-palette-option-custom + .color-palette-card .color-palette-swatches > span').each((index, swatch) => {
+            $(swatch).css('background-color', response.swatches[index] || '');
+        });
+    }
+
+    /**
+     * Cor personalizada mudou: atualiza a prévia (com uma pequena espera, porque o seletor de cor dispara muitas
+     * vezes enquanto a pessoa arrasta).
+     */
+    function onCompanyColorInput() {
+        if ($colorPalette.val() !== 'custom') {
+            return;
+        }
+
+        clearTimeout(companyColorPreviewTimeout);
+
+        companyColorPreviewTimeout = setTimeout(() => {
+            App.Components.ColorPalettePicker.preview('custom', $companyColor.val()).done(updateCustomSwatches);
+        }, 200);
     }
 
     /**
@@ -173,9 +212,9 @@ App.Pages.GeneralSettings = (function () {
 
         $removeCompanyLogo.on('click', onRemoveCompanyLogoClick);
 
-        $companyColor.on('change', onCompanyColorChange);
+        $colorPalette.on('change', onColorPaletteChange);
 
-        $resetCompanyColor.on('click', onResetCompanyColorClick);
+        $companyColor.on('input change', onCompanyColorInput);
 
         const generalSettings = vars('general_settings');
 

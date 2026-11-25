@@ -835,4 +835,13 @@ $lang['goal_template_delete_confirm'] = 'Delete this goal template?';
 $lang['goal_template_not_found'] = 'Goal template not found.';
 $lang['goal_template_goal_required'] = 'Write the goal (up to 500 characters).';
 $lang['goal_template_invalid_area'] = 'Invalid body area.';
+$lang['color_palette'] = 'Color palette';
+$lang['color_palette_hint'] = 'Applies to the whole system: every user\'s backend, the patient booking page, the login page and the emails. Clicking a palette previews it on this page; click Save to apply it for everyone. Each user can pick another one just for themselves under Account.';
+$lang['color_palette_custom'] = 'Custom';
+$lang['color_palette_custom_hint'] = 'A single color, chosen below. It is used on buttons, the menu and highlights.';
+$lang['color_palette_user'] = 'System colors';
+$lang['color_palette_user_hint'] = 'Only changes what you see in the backend. The patient booking page and the other users keep the clinic colors.';
+$lang['color_palette_follow_clinic'] = 'Clinic default';
+$lang['color_palette_invalid'] = 'Invalid color palette.';
+$lang['color_palette_selected'] = 'Selected';
 // End

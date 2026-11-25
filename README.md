@@ -11,6 +11,7 @@ Sistema online e responsivo para clínicas de fisioterapia. Funciona no navegado
 - **Turnos de atendimento** (pronto): dia da semana, horário, intervalo, duração, vigência e frequência de cada profissional, em Usuários → Turnos.
 - **Cadastro de pacientes** (pronto): feito pela equipe da clínica.
 - **Prontuário** (pronto): avaliação fisioterapêutica completa (anamnese, estilo de vida, percepção do paciente, mapa da dor, sinais vitais, dermátomos e miótomos, testes especiais e questionários com pontuação automática, metas por semana com metas padrão) e evoluções, visível só para o profissional de saúde, com histórico de alterações, registro de acessos e relatório A4/PDF.
+- **Paletas de cores** (pronto): o administrador escolhe as cores do sistema todo em Configurações → Geral, e cada usuário pode escolher outra só para ele em Conta.
 - **Protocolos** (planejado): modelos de tratamento que podem ser adicionados ao paciente e às evoluções.
 
 ## Status
@@ -43,7 +44,7 @@ Logins **fictícios** de demonstração (só para o Codespace; nunca use em prod
 No **Terminal** do Codespace:
 
 ```bash
-git pull origin claude/epic-planck-cccatl
+git pull origin claude/beautiful-carson-frxgwm
 bash .devcontainer/start.sh
 bash .devcontainer/demo-logins.sh
 ```

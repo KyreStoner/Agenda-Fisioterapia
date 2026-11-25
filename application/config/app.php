@@ -14,7 +14,7 @@
 $config['app_name'] = 'Sistema de Agendamento Fisioterapia';
 
 // Versão do sistema, exibida no rodapé do painel. Aumente a cada entrega (a do Easy!Appointments fica em 'version').
-$config['app_version'] = '0.6.0';
+$config['app_version'] = '0.7.0';
 
 // Idiomas. Por enquanto o sistema é todo em português do Brasil (Config::LANGUAGE = 'portuguese-br') e o seletor de
 // idioma fica escondido. GANCHO PARA O FUTURO: com true, o seletor volta ao rodapé do painel e da página de
@@ -29,4 +29,5 @@ $config['url'] = Config::BASE_URL;
 
 $config['debug'] = Config::DEBUG_MODE;
 
-$config['cache_busting_token'] = 'TSJ83-475';
+// Muda junto com a versão, para o navegador baixar o JS e o CSS novos a cada entrega (e não usar os guardados).
+$config['cache_busting_token'] = 'TSJ83-475-' . $config['app_version'];

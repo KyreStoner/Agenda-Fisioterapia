@@ -19,6 +19,7 @@ require_once APPPATH . 'helpers/validation_helper.php';
 // Minimal CodeIgniter stand-ins, so the permission helper can be tested without booting the framework.
 define('DB_SLUG_PROVIDER', 'provider');
 define('DB_SLUG_SECRETARY', 'secretary');
+define('DEFAULT_COMPANY_COLOR', '#ffffff');
 
 $GLOBALS['ea_test_session'] = [];
 $GLOBALS['ea_test_records'] = [];
@@ -62,9 +63,29 @@ function &get_instance(): object
         public object $db;
         public object $load;
         public object $secretaries_model;
+        public object $config;
 
         public function __construct()
         {
+            // Lê os arquivos de application/config como o CodeIgniter (usado pelas paletas de cores).
+            $this->config = new class {
+                private array $sections = [];
+
+                public function load(string $file, bool $use_sections = false): void
+                {
+                    $config = [];
+
+                    require APPPATH . 'config/' . $file . '.php';
+
+                    $this->sections[$file] = $config;
+                }
+
+                public function item(string $key, ?string $section = null): mixed
+                {
+                    return $this->sections[$section ?? '']['' . $key] ?? null;
+                }
+            };
+
             $this->db = new class {
                 private int $id = 0;
 
@@ -101,3 +122,4 @@ function &get_instance(): object
 }
 
 require_once APPPATH . 'helpers/permission_helper.php';
+require_once APPPATH . 'helpers/palette_helper.php';

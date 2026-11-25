@@ -6,6 +6,9 @@
  * @var string $message
  * @var array $settings
  */
+
+// Cor principal da paleta da clínica (Configurações → Geral → Paleta de cores).
+$email_color = clinic_color();
 ?>
 
 <!doctype html>
@@ -156,7 +159,7 @@
         }
 
         a {
-            color: #429A82;
+            color: <?= $email_color ?>;
             text-decoration: underline;
         }
 
@@ -184,10 +187,10 @@
 
         .btn a {
             background-color: #ffffff;
-            border: solid 1px #429A82;
+            border: solid 1px <?= $email_color ?>;
             border-radius: 5px;
             box-sizing: border-box;
-            color: #429A82;
+            color: <?= $email_color ?>;
             cursor: pointer;
             display: inline-block;
             font-size: 14px;
@@ -198,12 +201,12 @@
         }
 
         .btn-primary table td {
-            background-color: #429A82;
+            background-color: <?= $email_color ?>;
         }
 
         .btn-primary a {
-            background-color: #429A82;
-            border-color: #429A82;
+            background-color: <?= $email_color ?>;
+            border-color: <?= $email_color ?>;
             color: #ffffff;
         }
 

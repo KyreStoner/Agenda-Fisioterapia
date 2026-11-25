@@ -41,7 +41,13 @@ class Account extends EA_Controller
         //
     ];
 
-    public array $allowed_user_setting_fields = ['username', 'password', 'notifications', 'calendar_view'];
+    public array $allowed_user_setting_fields = [
+        'username',
+        'password',
+        'notifications',
+        'calendar_view',
+        'color_palette',
+    ];
 
     public array $optional_user_setting_fields = [
         //
@@ -93,6 +99,7 @@ class Account extends EA_Controller
 
         script_vars([
             'account' => filter_sensitive_user_data($account),
+            'color_palette' => user_color_palette_id($user_id),
         ]);
 
         html_vars([
@@ -100,6 +107,8 @@ class Account extends EA_Controller
             'active_menu' => PRIV_SYSTEM_SETTINGS,
             'user_display_name' => $this->accounts->get_user_display_name($user_id),
             'grouped_timezones' => $this->timezones->to_grouped_array(),
+            'color_palettes' => color_palette_options(),
+            'clinic_color_palette' => system_color_palette(),
         ]);
 
         $this->load->view('pages/account');
@@ -130,6 +139,18 @@ class Account extends EA_Controller
             $this->users_model->only($account['settings'], $this->allowed_user_setting_fields);
 
             $this->users_model->optional($account['settings'], $this->optional_user_setting_fields);
+
+            // Paleta só para este usuário: "" segue a da clínica; senão, uma das paletas do arquivo de configuração.
+            if (array_key_exists('color_palette', $account['settings'])) {
+                $account['settings']['color_palette'] = (string) $account['settings']['color_palette'];
+
+                if (
+                    $account['settings']['color_palette'] !== '' &&
+                    !find_color_palette($account['settings']['color_palette'])
+                ) {
+                    throw new InvalidArgumentException(lang('color_palette_invalid'));
+                }
+            }
 
             if (empty($account['settings']['password'])) {
                 unset($account['settings']['password']);

@@ -9,7 +9,13 @@ Instruções permanentes para qualquer assistente (Claude, Codex etc.) que traba
   - Não espalhe o nome fixo pelo código. Trocar o nome deve exigir uma única alteração.
   - Implementado: configuração `app_name` (migração 070), editável em **Configurações → Geral → Nome do sistema**. No código, use sempre o helper `app_name()`; o valor inicial fica em `application/config/app.php`.
   - O **nome da clínica** é outra coisa: `company_name` (Configurações → Geral → Nome da clínica), exibido ao paciente.
-- **Cor**: por enquanto fica o verde padrão. O usuário troca em **Configurações → Geral → Cor principal** (`company_color`), que vale para a página do paciente e para o painel.
+- **Cores (paletas)**: as paletas ficam em `application/config/color_palettes.php`: as 4 que o usuário mandou (Azul-marinho, Verde-oliva, Azul sereno, Vinho e coral), mais o verde original (`default`) e a cor única "Personalizada" (`custom`, que usa `company_color`).
+  - O administrador escolhe em **Configurações → Geral → Paleta de cores** (`color_palette`, migração 075). Vale para o sistema todo: painel de todos os usuários, página do paciente, login e e-mails. A tela mostra uma prévia ao clicar; vale para todos depois de Salvar.
+  - Cada usuário pode escolher outra **só para ele** em **Conta → Cores do sistema** (`user_settings.color_palette`; vazio = segue a clínica). Isso muda só o painel dele; a página do paciente segue a clínica.
+  - Código: `application/helpers/palette_helper.php` (`active_color_palette()` no painel, `system_color_palette()` nas páginas públicas, `clinic_color()` nos e-mails). O CSS sai de `color_palette_css()` pelo componente `palette_style` (tag `<style id="palette-style">`, que a prévia troca via `color_palettes/preview`). Escolha na tela: componente `color_palette_picker` + `assets/js/components/color_palette_picker.js`.
+  - Papel de cada cor: `primary` (botões, links, horário escolhido; texto branco por cima), `dark` (menu do painel, cabeçalho do agendamento, janelas), `accent` (item aberto do menu, item selecionado, dia de hoje), `light` (fundos suaves, etapa atual do agendamento), `background` opcional (fundo das páginas).
+  - Nova paleta: só acrescentar um bloco no arquivo de configuração. Não renomeie ids em uso. Em CSS ou tela nova, não use cor fixa: use `var(--bs-primary)` e `var(--ea-palette-dark|accent|light|background)`.
+  - O ícone padrão (`assets/img/logo.png`, verde) não muda com a paleta.
 - **Sem referências ao Easy!Appointments nas telas públicas e nos e-mails** (o usuário pediu para tirar o "Powered by"). O crédito e a licença ficam só numa linha discreta no rodapé do painel e na página "Sobre".
 - Repositório no GitHub: `KyreStoner/Agenda-Fisioterapia` (o nome do repositório também pode mudar junto com o nome do sistema).
 - Este projeto é **independente do Tasy Plus** (`KyreStoner/Tasy-Plus`). Não misture código nem arquivos entre eles.

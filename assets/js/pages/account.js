@@ -33,6 +33,8 @@ App.Pages.Account = (function () {
     const $password = $('#password');
     const $retypePassword = $('#retype-password');
     const $calendarView = $('#calendar-view');
+    const $colorPalette = $('#color-palette');
+    const $colorPalettePicker = $('#account .color-palette-picker');
     const notifications = $('#notifications');
     const $saveSettings = $('#save-settings');
     const $footerUserDisplayName = $('#footer-user-display-name');
@@ -120,6 +122,8 @@ App.Pages.Account = (function () {
         $password.val('');
         $retypePassword.val('');
         $calendarView.val(account.settings.calendar_view);
+        $colorPalette.val(vars('color_palette') || ''); // Já conferida pelo servidor ("" = paleta da clínica).
+        App.Components.ColorPalettePicker.sync($colorPalettePicker);
         notifications.prop('checked', Boolean(Number(account.settings.notifications)));
     }
 
@@ -147,6 +151,7 @@ App.Pages.Account = (function () {
                 username: $username.val(),
                 password: $password.val() || undefined,
                 calendar_view: $calendarView.val(),
+                color_palette: $colorPalette.val() || '',
                 notifications: Number(notifications.prop('checked')),
             },
         };
@@ -201,6 +206,9 @@ App.Pages.Account = (function () {
         $saveSettings.on('click', onSaveSettingsClick);
 
         $username.on('change', onUsernameChange);
+
+        // Prévia na hora; as cores ficam valendo para este usuário depois de salvar.
+        $colorPalette.on('change', () => App.Components.ColorPalettePicker.preview($colorPalette.val() || ''));
     }
 
     document.addEventListener('DOMContentLoaded', initialize);

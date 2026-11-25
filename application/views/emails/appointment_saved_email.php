@@ -13,6 +13,9 @@
  * @var string $appointment_link
  */
 
+// Cor principal da paleta da clínica (Configurações → Geral → Paleta de cores).
+$email_color = clinic_color();
+
 $customer_first_name = trim((string) ($customer['first_name'] ?? ''));
 $customer_last_name = trim((string) ($customer['last_name'] ?? ''));
 $customer_full_name = trim($customer_first_name . ' ' . $customer_last_name);
@@ -179,7 +182,7 @@ $customer_address = trim((string) ($customer['address'] ?? ''));
         }
 
         a {
-            color: #429A82;
+            color: <?= $email_color ?>;
             text-decoration: underline;
         }
 
@@ -207,10 +210,10 @@ $customer_address = trim((string) ($customer['address'] ?? ''));
 
         .btn a {
             background-color: #ffffff;
-            border: solid 1px #429A82;
+            border: solid 1px <?= $email_color ?>;
             border-radius: 5px;
             box-sizing: border-box;
-            color: #429A82;
+            color: <?= $email_color ?>;
             cursor: pointer;
             display: inline-block;
             font-size: 14px;
@@ -221,12 +224,12 @@ $customer_address = trim((string) ($customer['address'] ?? ''));
         }
 
         .btn-primary table td {
-            background-color: #429A82;
+            background-color: <?= $email_color ?>;
         }
 
         .btn-primary a {
-            background-color: #429A82;
-            border-color: #429A82;
+            background-color: <?= $email_color ?>;
+            border-color: <?= $email_color ?>;
             color: #ffffff;
         }
 
