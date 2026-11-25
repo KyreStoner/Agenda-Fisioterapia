@@ -144,12 +144,19 @@
 
 <?php end_section('content'); ?>
 
+<?php section('footer_top'); ?>
+
+<?php component('calendar_legend', ['services' => vars('available_services')]); ?>
+
+<?php end_section('footer_top'); ?>
+
 <?php section('scripts'); ?>
 
 <script src="<?= asset_url('assets/vendor/fullcalendar/index.global.min.js') ?>"></script>
 <script src="<?= asset_url('assets/vendor/fullcalendar-moment/index.global.min.js') ?>"></script>
 <script src="<?= asset_url('assets/vendor/jquery-jeditable/jquery.jeditable.min.js') ?>"></script>
 <script src="<?= asset_url('assets/js/utils/ui.js') ?>"></script>
+<script src="<?= asset_url('assets/js/components/calendar_legend.js') ?>"></script>
 <script src="<?= asset_url('assets/js/utils/calendar_default_view.js') ?>"></script>
 <script src="<?= asset_url('assets/js/utils/calendar_table_view.js') ?>"></script>
 <script src="<?= asset_url('assets/js/utils/calendar_event_popover.js') ?>"></script>

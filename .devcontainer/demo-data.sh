@@ -51,8 +51,9 @@ VALUES (@fisio, 'weekdays', 'weekly', '08:00', '18:00', '12:00', '13:00', 60, 'A
 
 UPDATE ea_services SET name = 'Sessão de Fisioterapia', duration = 50, price = 150.00, currency = 'R\$',
        slot_interval = 60, description = 'Atendimento individual de fisioterapia.' WHERE id = @sessao;
-INSERT INTO ea_services (name, duration, price, currency, slot_interval, description, attendants_number)
-       VALUES ('Avaliação Fisioterapêutica', 60, 200.00, 'R\$', 60, 'Primeira consulta com avaliação completa.', 1);
+INSERT INTO ea_services (name, duration, price, currency, slot_interval, description, attendants_number, color)
+       VALUES ('Avaliação Fisioterapêutica', 60, 200.00, 'R\$', 60, 'Primeira consulta com avaliação completa.', 1,
+               '#a8d5a2');
 SET @avaliacao = LAST_INSERT_ID();
 INSERT INTO ea_services_providers (id_users, id_services) VALUES (@fisio, @avaliacao);
 

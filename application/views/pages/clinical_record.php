@@ -91,6 +91,10 @@ $render_content = function (array $form, array $content) use ($catalog): void {
                 <i class="fas fa-plus-square me-2"></i><?= lang('cr_new_evolution') ?>
             </a>
         </div>
+    <?php else: ?>
+        <div class="alert alert-light border small py-2 mb-4">
+            <i class="fas fa-eye me-2"></i><?= lang('cr_read_only') ?>
+        </div>
     <?php endif; ?>
 
     <?php $progress = vars('goals_progress'); ?>

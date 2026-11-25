@@ -844,4 +844,7 @@ $lang['color_palette_user_hint'] = 'Only changes what you see in the backend. Th
 $lang['color_palette_follow_clinic'] = 'Clinic default';
 $lang['color_palette_invalid'] = 'Invalid color palette.';
 $lang['color_palette_selected'] = 'Selected';
+$lang['calendar_legend'] = 'Calendar colors';
+$lang['calendar_legend_closed'] = 'Closed / outside working hours';
+$lang['cr_read_only'] = 'Read only: your role can view the clinical record, but not create or edit entries. This access is kept in the access history.';
 // End

@@ -692,3 +692,41 @@ body .modal.full-screen .modal-push {
     outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
+
+/* Legenda das cores da agenda (linha discreta em cima do rodapé). No celular rola para o lado dentro dela mesma. */
+#calendar-legend {
+    gap: 0.75rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+}
+
+#calendar-legend::-webkit-scrollbar {
+    display: none;
+}
+
+#calendar-legend-appointments {
+    gap: 0.75rem;
+}
+
+#calendar-legend .calendar-legend-title {
+    font-weight: 600;
+}
+
+#calendar-legend .calendar-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+#calendar-legend .calendar-legend-swatch {
+    flex: 0 0 auto;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 0.2rem;
+    opacity: 0.85;
+}
+
+#calendar-legend .calendar-legend-closed {
+    background: repeating-linear-gradient(-45deg, #bebebe 0 2px, #e9e9e9 2px 4px);
+}

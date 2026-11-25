@@ -844,4 +844,7 @@ $lang['color_palette_user_hint'] = 'Muda só o que você vê no painel. A págin
 $lang['color_palette_follow_clinic'] = 'Padrão da clínica';
 $lang['color_palette_invalid'] = 'Paleta de cores inválida.';
 $lang['color_palette_selected'] = 'Escolhida';
+$lang['calendar_legend'] = 'Cores da agenda';
+$lang['calendar_legend_closed'] = 'Fechado / fora do horário';
+$lang['cr_read_only'] = 'Somente leitura: o seu perfil pode ver o prontuário, mas não criar nem editar registros. Este acesso fica no histórico de acessos.';
 // End
